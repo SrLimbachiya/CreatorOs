@@ -260,7 +260,7 @@ export default function SettingsView() {
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl pb-10">
+    <div className="space-y-6 w-full pb-10">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">

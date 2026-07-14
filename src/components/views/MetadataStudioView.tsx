@@ -293,7 +293,7 @@ export default function MetadataStudioView() {
         </div>
       </div>
 
-      <div className="h-[calc(100vh-210px)] select-none">
+      <div className="h-[calc(100vh-150px)] select-none">
         <AnimatePresence mode="wait">
           
           {/* SUBTAB 1: FEED PREVIEWER & OVERLAYS */}

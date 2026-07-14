@@ -134,7 +134,7 @@ export default function IdeaVaultView() {
 
       {/* Board View (Kanban Board) */}
       {viewType === "board" ? (
-        <div className="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-210px)] select-none">
+        <div className="flex gap-4 overflow-x-auto pb-4 h-[calc(100vh-150px)] select-none">
           {STATUSES.map((status) => {
             const statusIdeas = ideas.filter((idea) => idea.status === status);
             return (

@@ -198,7 +198,7 @@ export default function ResearchWorkspaceView() {
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-210px)] select-none">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-150px)] select-none">
         {/* Left: logged resources */}
         <div className="md:col-span-1 border border-white/[0.03] bg-zinc-950/20 backdrop-blur-sm rounded-2xl p-4 overflow-y-auto space-y-3">
           <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Research Repository</h3>
