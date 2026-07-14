@@ -1,0 +1,67 @@
+{
+  "name": "creator-os",
+  "version": "0.1.0",
+  "description": "CreatorOS - AI-Powered YouTube Studio",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "dev:renderer": "next dev",
+    "dev:main": "tsup --watch --onSuccess \"electron .\"",
+    "dev": "concurrently -n \"next,electron\" -c \"cyan,green\" \"npm run dev:renderer\" \"tsup --watch --onSuccess \\\"electron .\\\"\"",
+    "build:renderer": "next build",
+    "build:main": "tsup",
+    "build": "npm run build:renderer && npm run build:main",
+    "package": "npm run build && electron-builder",
+    "db:generate": "drizzle-kit generate:sqlite",
+    "db:push": "drizzle-kit push:sqlite"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.3.4",
+    "@libsql/client": "^0.6.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "drizzle-orm": "^0.30.9",
+    "framer-motion": "^11.0.24",
+    "lucide-react": "^0.363.0",
+    "next": "^14.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.51.2",
+    "tailwind-merge": "^2.2.2",
+    "zod": "^3.22.4",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.73",
+    "@types/react-dom": "^18.2.22",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "drizzle-kit": "^0.20.14",
+    "electron": "^29.1.6",
+    "electron-builder": "^24.13.3",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.1",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.3"
+  },
+  "build": {
+    "appId": "com.creatoros.app",
+    "productName": "CreatorOS",
+    "files": [
+      "dist/**/*",
+      "out/**/*"
+    ],
+    "directories": {
+      "output": "dist-package"
+    },
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

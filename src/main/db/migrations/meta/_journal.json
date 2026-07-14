@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1784047619495,
+      "tag": "0000_loving_black_panther",
+      "breakpoints": true
+    }
+  ]
+}
