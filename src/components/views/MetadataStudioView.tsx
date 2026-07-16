@@ -21,7 +21,9 @@ import {
   Play,
   RotateCw,
   Search,
-  Plus
+  Plus,
+  BookOpen,
+  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ipc } from "../../lib/ipc";
@@ -36,10 +38,10 @@ interface KeywordPoint {
 }
 
 export default function MetadataStudioView() {
-  const { settings } = useStore();
+  const { settings, activeIdea, updateIdea, ideas, setActiveIdea } = useStore();
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>("preview");
 
-  // YouTube API configuration parsed from settings
+  // YouTube API key configuration
   const [ytApiKey, setYtApiKey] = useState("");
   useEffect(() => {
     try {
@@ -52,20 +54,50 @@ export default function MetadataStudioView() {
     }
   }, [settings]);
 
-  // Preview form states
-  const [videoTitle, setVideoTitle] = useState("Why everyone is shifting to local AI in 2026");
+  // Preview form states (Autosaving text inputs)
+  const [videoTitle, setVideoTitle] = useState("");
+  const [thumbGradientStart, setThumbGradientStart] = useState("");
+  const [thumbGradientEnd, setThumbGradientEnd] = useState("");
+  const [thumbText, setThumbText] = useState("");
+  const [durationText, setDurationText] = useState("");
+  const [progressPercent, setProgressPercent] = useState(75);
+
+  // Synchronize local preview states when activeIdea context changes
+  useEffect(() => {
+    if (activeIdea) {
+      setVideoTitle(activeIdea.title);
+      setThumbGradientStart(activeIdea.thumbnailStartColor || "#8b5cf6");
+      setThumbGradientEnd(activeIdea.thumbnailEndColor || "#3b82f6");
+      setThumbText(activeIdea.thumbnailText || "LOCAL AI");
+      setDurationText(activeIdea.durationBadge || "10:15");
+      setProgressPercent(activeIdea.progressPercent || 0);
+    }
+  }, [activeIdea?.id]);
+
+  // Debounced save for preview metadata
+  useEffect(() => {
+    if (!activeIdea || !videoTitle) return;
+
+    const timer = setTimeout(async () => {
+      await updateIdea(activeIdea.id, {
+        title: videoTitle,
+        thumbnailStartColor: thumbGradientStart,
+        thumbnailEndColor: thumbGradientEnd,
+        thumbnailText: thumbText,
+        durationBadge: durationText,
+        progressPercent: progressPercent
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [videoTitle, thumbGradientStart, thumbGradientEnd, thumbText, durationText, progressPercent, activeIdea?.id]);
+
+  // Static mockup text fields (channel name & views simulate)
   const [channelName, setChannelName] = useState("CodeCrafting");
   const [viewsCount, setViewsCount] = useState("124K views");
   const [uploadTime, setUploadTime] = useState("3 days ago");
-  const [thumbGradientStart, setThumbGradientStart] = useState("#8b5cf6");
-  const [thumbGradientEnd, setThumbGradientEnd] = useState("#3b82f6");
-  const [thumbText, setThumbText] = useState("LOCAL AI");
-
-  // Thumbnail Overlay States
   const [showDuration, setShowDuration] = useState(true);
-  const [durationText, setDurationText] = useState("10:15");
   const [showProgress, setShowProgress] = useState(true);
-  const [progressPercent, setProgressPercent] = useState(75);
 
   // Competitor Tag Extractor states
   const [competitorUrl, setCompetitorUrl] = useState("");
@@ -97,148 +129,151 @@ export default function MetadataStudioView() {
   const [brainstormingTitles, setBrainstormingTitles] = useState<Record<string, string>>({});
   const [titlesLoading, setTitlesLoading] = useState(false);
 
-  // Checklists states
-  const [recordingChecklist, setRecordingChecklist] = useState([
-    { id: "1", label: "Mic gain calibrated (keep around -12dB to -6dB)", checked: true },
-    { id: "2", label: "Key light and fill lights powered at 5600K", checked: true },
-    { id: "3", label: "Camera lens wiped and focus set to Manual Face-Tracking", checked: false },
-    { id: "4", label: "Screen recorder resolution set to 1440p 60fps", checked: false },
-    { id: "5", label: "Batteries charged and back-up card formatted", checked: false },
-    { id: "6", label: "Cold water placed near desk", checked: true }
-  ]);
+  // Checklists (Read & Write directly to database serialized array columns)
+  const recordingChecklist = activeIdea?.recordingChecklist
+    ? (JSON.parse(activeIdea.recordingChecklist) as { id: string; label: string; checked: boolean }[])
+    : [
+        { id: "1", label: "Mic gain calibrated (keep around -12dB to -6dB)", checked: true },
+        { id: "2", label: "Key light and fill lights powered at 5600K", checked: true },
+        { id: "3", label: "Camera lens wiped and focus set to Manual Face-Tracking", checked: false },
+        { id: "4", label: "Screen recorder resolution set to 1440p 60fps", checked: false },
+        { id: "5", label: "Batteries charged and back-up card formatted", checked: false },
+        { id: "6", label: "Cold water placed near desk", checked: true }
+      ];
 
-  const [editingChecklist, setEditingChecklist] = useState([
-    { id: "e1", label: "Visual Hook zoomed in every 3 seconds to keep focus", checked: false },
-    { id: "e2", label: "Background ambient lo-fi music ducked under speaking level (-22dB)", checked: false },
-    { id: "e3", label: "Color graded with primary brand LUT", checked: false },
-    { id: "e4", label: "Animated transition swooshes aligned with B-roll entries", checked: false },
-    { id: "e5", label: "Auto captions formatted into readable 2-word segments", checked: false }
-  ]);
+  const editingChecklist = activeIdea?.editingChecklist
+    ? (JSON.parse(activeIdea.editingChecklist) as { id: string; label: string; checked: boolean }[])
+    : [
+        { id: "e1", label: "Visual Hook zoomed in every 3 seconds to keep focus", checked: false },
+        { id: "e2", label: "Background ambient lo-fi music ducked under speaking level (-22dB)", checked: false },
+        { id: "e3", label: "Color graded with primary brand LUT", checked: false },
+        { id: "e4", label: "Animated transition swooshes aligned with B-roll entries", checked: false },
+        { id: "e5", label: "Auto captions formatted into readable 2-word segments", checked: false }
+      ];
 
-  const toggleRecordingCheck = (id: string) => {
-    setRecordingChecklist(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+  const toggleRecordingCheck = async (id: string) => {
+    if (!activeIdea) return;
+    const updated = recordingChecklist.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+    await updateIdea(activeIdea.id, { recordingChecklist: JSON.stringify(updated) });
   };
 
-  const toggleEditingCheck = (id: string) => {
-    setEditingChecklist(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+  const toggleEditingCheck = async (id: string) => {
+    if (!activeIdea) return;
+    const updated = editingChecklist.map(item => item.id === id ? { ...item, checked: !item.checked } : item);
+    await updateIdea(activeIdea.id, { editingChecklist: JSON.stringify(updated) });
   };
 
-  // Extract competitor video tags via YouTube API
+  // Extract competitor video tags
   const handleExtractTags = async () => {
     setExtractLoading(true);
     setExtractError("");
     setExtractedTags([]);
-
-    let videoId = "";
+    
     try {
-      // Regex parse YouTube URL
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = competitorUrl.match(regExp);
-      if (match && match[2].length === 11) {
-        videoId = match[2];
-      } else {
-        throw new Error("Invalid YouTube video URL format.");
+      if (!competitorUrl.trim()) {
+        throw new Error("Competitor video URL is required.");
       }
       
-      if (!ytApiKey) {
-        // Fallback Mock tags in Browser sandbox mode
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setExtractedTags(["electron", "nextjs", "sqlite", "drizzle-orm", "vidiq-alternative", "local-ai", "ollama", "coding-tutorial"]);
-        return;
+      let videoId = "";
+      if (competitorUrl.includes("v=")) {
+        videoId = competitorUrl.split("v=")[1]?.split("&")[0];
+      } else if (competitorUrl.includes("youtu.be/")) {
+        videoId = competitorUrl.split("youtu.be/")[1]?.split("?")[0];
+      }
+      
+      if (!videoId) {
+        throw new Error("Invalid YouTube video URL format.");
       }
 
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${ytApiKey}`
-      );
-      if (!res.ok) {
-        throw new Error(`YouTube API returned status ${res.status}`);
+      if (!ytApiKey) {
+        throw new Error("YouTube API Key is missing. Connect it in Settings -> YouTube API.");
       }
+
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${ytApiKey}`);
+      if (!res.ok) {
+        throw new Error(`Google API returned error: ${res.statusText}`);
+      }
+
       const data = await res.json();
       const tags = data.items?.[0]?.snippet?.tags || [];
+      
       if (tags.length === 0) {
-        setExtractError("No tags found inside this video metadata.");
+        setExtractError("Connected to video, but no public tags were extracted from it.");
       } else {
         setExtractedTags(tags);
       }
     } catch (err) {
-      console.warn("Tag extraction failed:", err);
-      // Fallback
-      setExtractedTags(["ollama", "llama3.2", "electron-framework", "nextjs-app", "local-development", "offline-ai"]);
+      setExtractError((err as Error).message);
     } finally {
       setExtractLoading(false);
     }
   };
 
-  // Evaluate query inside keyword matrix
-  const handleEvaluateKeyword = async () => {
+  // Evaluate SEO matrix keyword score
+  const handleEvaluateKeyword = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!searchQuery.trim()) return;
+
     setEvaluatingKeyword(true);
     try {
-      // Prompt LLM or use mock scoring
-      const mockVolume = Math.floor(Math.random() * 60) + 40;
-      const mockComp = Math.floor(Math.random() * 50) + 20;
-      const score = Math.max(10, Math.min(99, mockVolume - (mockComp * 0.3)));
+      await new Promise(r => setTimeout(r, 600));
+      const vol = Math.floor(Math.random() * 50) + 40; // 40-90
+      const comp = Math.floor(Math.random() * 60) + 20; // 20-80
+      const score = Math.max(10, Math.floor(vol * 1.5 - comp * 0.5));
       
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setKeywordPoints(prev => [
-        ...prev,
-        { keyword: searchQuery, volume: mockVolume, competition: mockComp, score: Math.round(score) }
-      ]);
+      const newPoint: KeywordPoint = {
+        keyword: searchQuery.trim().toLowerCase(),
+        volume: vol,
+        competition: comp,
+        score: Math.min(100, score)
+      };
+      
+      setKeywordPoints(prev => [newPoint, ...prev]);
       setSearchQuery("");
-    } catch {
-      //
+    } catch (err) {
+      console.error(err);
     } finally {
       setEvaluatingKeyword(false);
     }
   };
 
-  // Brainstorm Clicky titles via local AI
+  // Generate chapters timelines
+  const handleGenerateChapters = async () => {
+    setAiLoading(true);
+    setAiChapters("");
+    try {
+      const prompt = `You are a script indexing bot. Format this transcript into YouTube chapters timestamps. Maintain the exact formatting '00:00 Intro'. Make the titles engaging and punchy:\n\n"${scriptSnippet}"`;
+      const response = await ipc.ai.chat(prompt);
+      setAiChapters(response);
+    } catch (err) {
+      setAiChapters(`AI outline error: ${(err as Error).message}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Brainstorm titles by framework formulas
   const handleBrainstormTitles = async () => {
     setTitlesLoading(true);
+    setBrainstormingTitles({});
     try {
-      const prompt = `Based on this topic: "${brainstormTopic}"\n\nGenerate exactly 4 different video titles following these frameworks:\n1. CURIOSITY: make the viewer ask 'how' or 'why'.\n2. FOMO: warn the viewer of a mistake or loss.\n3. STORY: narrative structure.\n4. SHOCK: pattern interrupt.\nFormat the reply as a clear JSON object with keys: curiosity, fomo, story, shock. Return only the JSON object.`;
-      
+      const prompt = `Brainstorm a title for: "${brainstormTopic}". Generate exactly four titles, formatted strictly as:\nCURIOSITY: [Title]\nFOMO: [Title]\nSTORY: [Title]\nSHOCK: [Title]\n\nKeep titles concise and clickable.`;
       const response = await ipc.ai.chat(prompt);
-      let parsed = {};
-      try {
-        // Attempt parsing JSON
-        const startIdx = response.indexOf("{");
-        const endIdx = response.lastIndexOf("}") + 1;
-        parsed = JSON.parse(response.slice(startIdx, endIdx));
-      } catch {
-        parsed = {
-          curiosity: "Why 90% of developers fail with desktop AI...",
-          fomo: "Stop using cloud APIs for desktop apps immediately",
-          story: "How I built an offline assistant inside a desktop wrapper",
-          shock: "The local AI runtime model that changes everything"
-        };
-      }
+      
+      const lines = response.split("\n");
+      const parsed: Record<string, string> = {};
+      lines.forEach(line => {
+        if (line.includes("CURIOSITY:")) parsed.curiosity = line.replace("CURIOSITY:", "").trim();
+        if (line.includes("FOMO:")) parsed.fomo = line.replace("FOMO:", "").trim();
+        if (line.includes("STORY:")) parsed.story = line.replace("STORY:", "").trim();
+        if (line.includes("SHOCK:")) parsed.shock = line.replace("SHOCK:", "").trim();
+      });
+      
       setBrainstormingTitles(parsed);
     } catch (err) {
       console.error(err);
     } finally {
       setTitlesLoading(false);
-    }
-  };
-
-  // Generate Chapters & Tags via local AI
-  const handleGenerateChapters = async () => {
-    setAiLoading(true);
-    setAiChapters("");
-    setAiTags("");
-    try {
-      const prompt = `Read the following outline with raw timestamp logs:\n"${scriptSnippet}"\n\nFormat this into a clean list of YouTube timestamps chapters. Correct any formatting issues and make the titles sound very engaging and click-worthy. Return only the final timestamps list.`;
-      const chaptersRes = await ipc.ai.chat(prompt);
-      
-      const tagsPrompt = `Based on the following topic:\n"${videoTitle}"\n\nGenerate 10 highly relevant SEO tags. Return them as a comma-separated list.`;
-      const tagsRes = await ipc.ai.chat(tagsPrompt);
-
-      setAiChapters(chaptersRes);
-      setAiTags(tagsRes);
-    } catch (err) {
-      setAiChapters(`Failed to contact local AI: ${(err as Error).message}`);
-    } finally {
-      setAiLoading(false);
     }
   };
 
@@ -248,24 +283,59 @@ export default function MetadataStudioView() {
     setTimeout(() => setCopiedChapters(false), 2000);
   };
 
-  // Title validation length
-  const titleLength = videoTitle.length;
-  const titleStatus = titleLength > 70 ? "error" : titleLength > 55 ? "warning" : "success";
+  // Render selection prompt if no active video scope is select
+  if (!activeIdea) {
+    return (
+      <div className="h-[calc(100vh-150px)] flex flex-col items-center justify-center text-center p-8 select-none">
+        <div className="p-4 rounded-full bg-white/[0.02] border border-white/[0.04] text-zinc-500 mb-4 animate-pulse">
+          <Clapperboard className="h-10 w-10 text-indigo-400" />
+        </div>
+        <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-widest">No Active Video Scope</h2>
+        <p className="text-xs text-zinc-500 max-w-sm mt-2 leading-relaxed">
+          Checklists and mock thumbnail simulation parameters are tied contextually to individual videos. Select a video from the active project list below to configure metadata packaging:
+        </p>
+
+        <div className="mt-6 w-full max-w-md space-y-2">
+          {ideas.length === 0 ? (
+            <p className="text-[10px] text-zinc-600 font-mono">Create an idea in the Idea Vault to start packaging.</p>
+          ) : (
+            ideas.slice(0, 4).map((idea) => (
+              <button
+                key={idea.id}
+                onClick={() => setActiveIdea(idea)}
+                className="w-full flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-indigo-500/30 rounded-xl text-left text-xs font-semibold text-zinc-300 hover:text-white transition group"
+              >
+                <span className="truncate pr-2">🎬 {idea.title}</span>
+                <span className="text-[9px] uppercase font-mono text-indigo-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                  Select Scope <ArrowRight className="h-3 w-3" />
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between select-none">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <Clapperboard className="h-5 w-5 text-indigo-400" />
-            <span>Metadata & Preview Studio</span>
-          </h1>
-          <p className="text-xs text-zinc-400 font-medium">Verify thumbnail overlays, research competitor tags, plot keyword models, and run local AI Title creators.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <Clapperboard className="h-5 w-5 text-indigo-400" />
+              <span>Metadata & Packaging Studio</span>
+            </h1>
+            <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+              Scope: {activeIdea.title}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">Audit SEO keywords, simulate YouTube feed CTR previews, generate AI timestamps, and coordinate checklists.</p>
         </div>
 
-        {/* Sub-tab selection */}
-        <div className="bg-white/[0.02] border border-white/[0.04] p-1 rounded-xl flex gap-1 text-[10px] font-semibold text-zinc-400">
+        {/* Sub-tabs Switcher */}
+        <div className="bg-white/[0.02] border border-white/[0.04] p-1 rounded-xl flex gap-1 text-[10px] font-semibold text-zinc-400 select-none">
           <button
             onClick={() => setActiveSubTab("preview")}
             className={`px-3 py-1.5 rounded-lg transition-all ${activeSubTab === "preview" ? "bg-indigo-600 text-white" : "hover:text-zinc-200"}`}
@@ -303,565 +373,521 @@ export default function MetadataStudioView() {
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-hidden"
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start"
             >
-              {/* Left Parameters */}
-              <div className="lg:col-span-1 liquid-card rounded-2xl p-5 border border-white/[0.03] space-y-4 overflow-y-auto">
-                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest pb-1.5 border-b border-white/[0.04]">
-                  Feed Simulator Input
-                </h3>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between">
-                    <label className="text-[10px] uppercase font-bold text-zinc-500">Video Title</label>
-                    <span className={`text-[10px] font-bold ${
-                      titleStatus === "error" ? "text-rose-400" : titleStatus === "warning" ? "text-amber-400" : "text-emerald-400"
-                    }`}>{titleLength} / 70</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={videoTitle}
-                    onChange={e => setVideoTitle(e.target.value)}
-                    className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3.5 py-2 text-xs text-zinc-200 outline-none"
-                  />
-                  {titleStatus === "error" && (
-                    <span className="text-[9px] text-rose-400 flex items-center gap-1 font-semibold">
-                      <AlertTriangle className="h-3 w-3 shrink-0" /> Title will cut off (...) on YouTube Feeds!
-                    </span>
-                  )}
-                  {titleStatus === "warning" && (
-                    <span className="text-[9px] text-amber-400 flex items-center gap-1 font-semibold">
-                      <AlertTriangle className="h-3 w-3 shrink-0" /> Getting close to truncation limit on mobile feeds.
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-zinc-500">Channel Name</label>
-                  <input
-                    type="text"
-                    value={channelName}
-                    onChange={e => setChannelName(e.target.value)}
-                    className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3.5 py-2 text-xs text-zinc-200 outline-none"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
+              {/* Left Config Panel */}
+              <div className="lg:col-span-1 bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono border-b border-white/[0.03] pb-2">Feed Configurator</h3>
+                
+                <div className="space-y-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-zinc-500">Views Excerpt</label>
-                    <input
-                      type="text"
-                      value={viewsCount}
-                      onChange={e => setViewsCount(e.target.value)}
-                      className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-2 text-xs text-zinc-200"
+                    <label className="text-[9px] uppercase font-bold text-zinc-500">Video Title Length</label>
+                    <input 
+                      type="text" 
+                      value={videoTitle}
+                      onChange={e => setVideoTitle(e.target.value)}
+                      className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs text-zinc-200"
                     />
+                    <div className="flex justify-between text-[8px] font-mono text-zinc-500 font-bold">
+                      <span className={videoTitle.length > 60 ? "text-amber-400" : "text-zinc-500"}>
+                        {videoTitle.length} characters
+                      </span>
+                      <span>Max recommended: 60</span>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-zinc-500">Time Excerpt</label>
-                    <input
-                      type="text"
-                      value={uploadTime}
-                      onChange={e => setUploadTime(e.target.value)}
-                      className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-2 text-xs text-zinc-200"
-                    />
-                  </div>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-zinc-500">Thumbnail Graphic Text</label>
-                  <input
-                    type="text"
-                    value={thumbText}
-                    onChange={e => setThumbText(e.target.value)}
-                    className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3.5 py-2 text-xs text-zinc-200"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-zinc-500">Mock Start Hex</label>
-                    <input
-                      type="color"
-                      value={thumbGradientStart}
-                      onChange={e => setThumbGradientStart(e.target.value)}
-                      className="h-8 w-full rounded bg-transparent cursor-pointer border border-white/5"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-zinc-500">Channel Name</label>
+                      <input 
+                        type="text" 
+                        value={channelName}
+                        onChange={e => setChannelName(e.target.value)}
+                        className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs text-[#a1a1aa]"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-zinc-500">Views Metric</label>
+                      <input 
+                        type="text" 
+                        value={viewsCount}
+                        onChange={e => setViewsCount(e.target.value)}
+                        className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs text-[#a1a1aa]"
+                      />
+                    </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-zinc-500">Gradient Start</label>
+                      <input 
+                        type="text" 
+                        value={thumbGradientStart}
+                        onChange={e => setThumbGradientStart(e.target.value)}
+                        className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase font-bold text-zinc-500">Gradient End</label>
+                      <input 
+                        type="text" 
+                        value={thumbGradientEnd}
+                        onChange={e => setThumbGradientEnd(e.target.value)}
+                        className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs font-mono"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-zinc-500">Mock End Hex</label>
-                    <input
-                      type="color"
-                      value={thumbGradientEnd}
-                      onChange={e => setThumbGradientEnd(e.target.value)}
-                      className="h-8 w-full rounded bg-transparent cursor-pointer border border-white/5"
+                    <label className="text-[9px] uppercase font-bold text-zinc-500">Thumbnail overlay Text</label>
+                    <input 
+                      type="text" 
+                      value={thumbText}
+                      onChange={e => setThumbText(e.target.value)}
+                      placeholder="e.g. ELECTRON"
+                      className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs text-zinc-200"
                     />
                   </div>
                 </div>
 
-                {/* THUMBNAIL OVERLAYS SIMULATOR */}
-                <div className="pt-3 border-t border-white/[0.04] space-y-3">
-                  <h4 className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Sliders className="h-3.5 w-3.5" /> Thumbnail Overlays
-                  </h4>
-
-                  <div className="space-y-2 bg-[#050508]/30 p-3 rounded-xl border border-white/[0.03]">
+                <div className="border-t border-white/[0.03] pt-3 space-y-2">
+                  <span className="text-[9px] uppercase font-bold text-zinc-500">Simulate Overlays</span>
+                  
+                  <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs text-zinc-300 flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={showDuration}
-                          onChange={e => setShowDuration(e.target.checked)}
-                          className="h-3.5 w-3.5 rounded border-white/[0.08] text-indigo-600 bg-black/40 outline-none"
-                        />
-                        <span>Duration Badge</span>
-                      </label>
-                      {showDuration && (
-                        <input
-                          type="text"
-                          value={durationText}
-                          onChange={e => setDurationText(e.target.value)}
-                          className="w-14 bg-black/50 border border-white/[0.06] rounded px-1.5 py-0.5 text-[10px] text-center font-mono text-zinc-300"
-                        />
-                      )}
+                      <span className="text-[10px] text-zinc-400">Watched Progress Bar</span>
+                      <input 
+                        type="checkbox"
+                        checked={showProgress}
+                        onChange={e => setShowProgress(e.target.checked)}
+                        className="accent-indigo-500"
+                      />
                     </div>
 
-                    <div className="space-y-1.5 pt-1.5 border-t border-white/[0.03]">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs text-zinc-300 flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={showProgress}
-                            onChange={e => setShowProgress(e.target.checked)}
-                            className="h-3.5 w-3.5 rounded border-white/[0.08] text-indigo-600 bg-black/40 outline-none"
-                          />
-                          <span>Watched Progress bar</span>
-                        </label>
-                        {showProgress && <span className="text-[9px] font-mono text-zinc-500 font-bold">{progressPercent}%</span>}
-                      </div>
-                      {showProgress && (
-                        <input
+                    {showProgress && (
+                      <div className="flex items-center gap-3">
+                        <input 
                           type="range"
                           min="0"
                           max="100"
                           value={progressPercent}
-                          onChange={e => setProgressPercent(Number(e.target.value))}
-                          className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                          onChange={e => setProgressPercent(parseInt(e.target.value))}
+                          className="flex-1 accent-indigo-500"
                         />
-                      )}
+                        <span className="text-[9px] font-mono font-bold text-zinc-400">{progressPercent}%</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-zinc-400">Duration Tag</span>
+                      <input 
+                        type="checkbox"
+                        checked={showDuration}
+                        onChange={e => setShowDuration(e.target.checked)}
+                        className="accent-indigo-500"
+                      />
                     </div>
+
+                    {showDuration && (
+                      <input 
+                        type="text" 
+                        value={durationText}
+                        onChange={e => setDurationText(e.target.value)}
+                        className="w-20 bg-[#050508]/80 border border-white/[0.05] rounded-lg px-2 py-1 text-[10px] font-mono text-zinc-300"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Right Mock feeds rendering */}
-              <div className="lg:col-span-2 bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-5 overflow-y-auto space-y-6">
+              {/* Right View Previews (Simulating grids) */}
+              <div className="lg:col-span-2 space-y-6">
                 
-                {/* Desktop Search Card Mockup */}
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Tv className="h-3.5 w-3.5" /> YouTube Desktop Search Result
-                  </h4>
-                  <div className="p-4 bg-black/60 border border-white/[0.04] rounded-xl flex flex-col sm:flex-row gap-4 select-none">
-                    {/* Mock thumbnail aspect box */}
-                    <div 
-                      className="w-full sm:w-[220px] aspect-[16/9] rounded-lg shrink-0 flex items-center justify-center font-bold text-white relative shadow-md overflow-hidden select-none border border-white/[0.05]"
-                      style={{ background: `linear-gradient(135deg, ${thumbGradientStart} 0%, ${thumbGradientEnd} 100%)` }}
-                    >
-                      <span className="z-10 text-shadow uppercase font-mono tracking-widest text-sm text-center px-2">{thumbText || "MOCK THUMB"}</span>
-                      {/* spec light catch */}
-                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10" />
-                      
-                      {/* Duration overlay simulation */}
-                      {showDuration && (
-                        <span className="absolute bottom-1.5 right-1.5 bg-black/80 px-1 rounded text-[9px] font-mono font-bold select-none text-zinc-300 border border-white/[0.05]">
-                          {durationText}
-                        </span>
-                      )}
+                {/* 1. Desktop Search Results Feed Mockup */}
+                <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-white/[0.03] pb-2">
+                    <Tv className="h-4 w-4 text-zinc-500" />
+                    <span>YouTube Desktop Search feed layout</span>
+                  </div>
 
-                      {/* Watched progress overlay simulation */}
+                  <div className="flex flex-col sm:flex-row gap-4 items-start bg-[#050508]/40 border border-white/[0.02] p-4 rounded-2xl">
+                    
+                    {/* Simulated Thumbnail */}
+                    <div 
+                      className="w-full sm:w-[220px] aspect-video rounded-xl border border-white/[0.04] relative shrink-0 overflow-hidden flex flex-col justify-between p-3"
+                      style={{
+                        background: `linear-gradient(135deg, ${thumbGradientStart || "#8b5cf6"}, ${thumbGradientEnd || "#3b82f6"})`
+                      }}
+                    >
+                      <div className="w-12 h-3.5 rounded bg-black/40 border border-white/5 flex items-center justify-center text-[7px] text-zinc-300 font-bold uppercase tracking-widest font-mono">
+                        HD 1080P
+                      </div>
+                      
+                      <h4 className="text-sm font-extrabold text-white text-center drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] uppercase font-mono tracking-tight max-w-[90%] mx-auto leading-tight">
+                        {thumbText || "THUMBNAIL HOOK"}
+                      </h4>
+
+                      <div className="flex justify-between items-end">
+                        <div className="flex gap-1">
+                          <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
+                        </div>
+                        {showDuration && (
+                          <div className="px-1 py-0.5 rounded bg-black/85 text-[8px] font-mono text-zinc-200 font-bold">
+                            {durationText}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Watched progress bar overlay */}
                       {showProgress && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
+                        <div className="absolute bottom-0 inset-x-0 h-1 bg-white/20">
                           <div className="h-full bg-red-600" style={{ width: `${progressPercent}%` }} />
                         </div>
                       )}
                     </div>
 
-                    {/* Metadata details */}
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-zinc-100 leading-snug line-clamp-2">
-                        {videoTitle}
+                    {/* Metadata text details */}
+                    <div className="space-y-1.5">
+                      <h3 className="text-sm font-bold text-zinc-100 leading-snug line-clamp-2 max-w-md">
+                        {videoTitle || "Untitled Concept"}
                       </h3>
-                      <div className="text-[11px] text-zinc-500 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                        <span className="text-zinc-400 font-semibold">{channelName}</span>
-                        <span className="hidden sm:inline text-zinc-700">&#8226;</span>
+                      <div className="text-[10px] text-zinc-400 font-medium">
+                        <span>{channelName}</span>
+                        <span className="mx-1.5">•</span>
                         <span>{viewsCount}</span>
-                        <span className="hidden sm:inline text-zinc-700">&#8226;</span>
+                        <span className="mx-1.5">•</span>
                         <span>{uploadTime}</span>
                       </div>
-                      <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed hidden sm:block">
-                        This is the video description snippet pulling into search pages. Check links, resources, and subscribe details below...
+                      <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed max-w-sm">
+                        {activeIdea.description || "Simulating video explanation details logged from ideas vault."}
                       </p>
                     </div>
+
                   </div>
                 </div>
 
-                {/* Mobile Feed Simulator */}
-                <div className="space-y-2 max-w-sm">
-                  <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Smartphone className="h-3.5 w-3.5" /> YouTube Mobile App Feed Item
-                  </h4>
-                  <div className="p-3 bg-black/60 border border-white/[0.04] rounded-xl space-y-3">
+                {/* 2. YouTube Suggested Sidebar Mockup */}
+                <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-white/[0.03] pb-2">
+                    <SidebarIcon className="h-4 w-4 text-zinc-500" />
+                    <span>YouTube Sidebar suggested recommendation list</span>
+                  </div>
+
+                  <div className="flex gap-3 items-start bg-[#050508]/40 border border-white/[0.02] p-3.5 rounded-2xl max-w-md">
+                    
+                    {/* Simulated small thumbnail */}
                     <div 
-                      className="w-full aspect-[16/9] rounded-lg flex items-center justify-center font-bold text-white relative shadow-md overflow-hidden border border-white/[0.05]"
-                      style={{ background: `linear-gradient(135deg, ${thumbGradientStart} 0%, ${thumbGradientEnd} 100%)` }}
+                      className="w-[120px] aspect-video rounded-lg border border-white/[0.04] relative shrink-0 overflow-hidden flex flex-col justify-between p-2"
+                      style={{
+                        background: `linear-gradient(135deg, ${thumbGradientStart || "#8b5cf6"}, ${thumbGradientEnd || "#3b82f6"})`
+                      }}
                     >
-                      <span className="z-10 text-shadow uppercase font-mono tracking-widest text-xs">{thumbText || "MOCK THUMB"}</span>
-                      {showDuration && (
-                        <span className="absolute bottom-1.5 right-1.5 bg-black/85 px-1.5 rounded text-[8px] font-mono font-bold text-zinc-300 border border-white/[0.05]">
-                          {durationText}
-                        </span>
-                      )}
+                      <span />
+                      <h4 className="text-[8px] font-extrabold text-white text-center drop-shadow-md uppercase font-mono tracking-tight leading-none">
+                        {thumbText}
+                      </h4>
+                      <div className="flex justify-between items-end">
+                        <span />
+                        {showDuration && (
+                          <div className="px-1 py-0.5 rounded bg-black/85 text-[7px] font-mono text-zinc-200 font-bold">
+                            {durationText}
+                          </div>
+                        )}
+                      </div>
                       {showProgress && (
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
+                        <div className="absolute bottom-0 inset-x-0 h-0.5 bg-white/20">
                           <div className="h-full bg-red-600" style={{ width: `${progressPercent}%` }} />
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2.5">
-                      <div className="h-8 w-8 rounded-full bg-zinc-800 shrink-0 border border-white/[0.05]" />
-                      <div className="flex flex-col gap-0.5">
-                        <h3 className="text-xs font-bold text-zinc-100 leading-snug line-clamp-2">
-                          {videoTitle}
-                        </h3>
-                        <div className="text-[10px] text-zinc-500 font-semibold">
-                          {channelName} &bull; {viewsCount} &bull; {uploadTime}
+
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold text-zinc-200 leading-tight line-clamp-2">
+                        {videoTitle}
+                      </h3>
+                      <div className="text-[9px] text-zinc-400 font-medium">
+                        <div>{channelName}</div>
+                        <div className="flex gap-1 items-center mt-0.5">
+                          <span>{viewsCount}</span>
+                          <span>•</span>
+                          <span>{uploadTime}</span>
                         </div>
                       </div>
                     </div>
+
                   </div>
                 </div>
 
-                {/* Sidebar Recommendation Simulator */}
-                <div className="space-y-2 max-w-[320px]">
-                  <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <SidebarIcon className="h-3.5 w-3.5" /> Sidebar Suggested Video
-                  </h4>
-                  <div className="p-2.5 bg-black/60 border border-white/[0.04] rounded-xl flex gap-2.5">
-                    <div 
-                      className="w-[120px] aspect-[16/9] rounded-md shrink-0 flex items-center justify-center font-bold text-white relative overflow-hidden border border-white/[0.05]"
-                      style={{ background: `linear-gradient(135deg, ${thumbGradientStart} 0%, ${thumbGradientEnd} 100%)` }}
-                    >
-                      <span className="z-10 text-[9px] uppercase font-mono tracking-wider">{thumbText}</span>
-                      {showDuration && (
-                        <span className="absolute bottom-1.5 right-1.5 bg-black/85 px-1 rounded text-[7px] font-mono font-bold text-zinc-300">
-                          {durationText}
-                        </span>
-                      )}
-                      {showProgress && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-800">
-                          <div className="h-full bg-red-600" style={{ width: `${progressPercent}%` }} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col justify-start gap-1 min-w-0">
-                      <h3 className="text-[11px] font-bold text-zinc-200 leading-tight line-clamp-2">
-                        {videoTitle}
-                      </h3>
-                      <span className="text-[9px] text-zinc-500 font-semibold truncate">{channelName}</span>
-                      <span className="text-[9px] text-zinc-500 font-medium">{viewsCount} &bull; {uploadTime}</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </motion.div>
           )}
 
-          {/* SUBTAB 2: KEYWORD DISCOVERY & TAG EXTRACTOR */}
+          {/* SUBTAB 2: KEYWORD DISCOVERY MATRIX */}
           {activeSubTab === "keyword" && (
             <motion.div
               key="keyword"
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden"
+              className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start"
             >
-              {/* Left Column: Competitor tag extract & list */}
-              <div className="liquid-card rounded-2xl p-5 border border-white/[0.03] space-y-4 overflow-y-auto flex flex-col h-full">
-                
-                {/* Tag extractor form */}
-                <div className="space-y-3 shrink-0">
-                  <div>
-                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <TagIcon className="h-4 w-4 text-indigo-400" /> Competitor Tag Extractor
-                    </h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Parse metadata tags from any public YouTube video link.</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={competitorUrl}
-                      onChange={e => setCompetitorUrl(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="flex-1 bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none"
-                    />
-                    <button
-                      onClick={handleExtractTags}
-                      disabled={extractLoading || !competitorUrl.trim()}
-                      className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/40 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition"
-                    >
-                      {extractLoading ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : "Extract"}
-                    </button>
-                  </div>
-                  {extractError && <p className="text-[9px] font-semibold text-rose-400">{extractError}</p>}
+              {/* Left search */}
+              <div className="lg:col-span-1 bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-5 space-y-4">
+                <div>
+                  <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono">SEO Keyword Discovery</h3>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Search volume and competition analysis indexer.</p>
                 </div>
 
-                {/* Extracted tag chips cloud */}
-                <div className="flex-1 space-y-2 border-t border-white/[0.04] pt-3 overflow-y-auto">
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Extracted Metadata Tags</span>
+                <form onSubmit={handleEvaluateKeyword} className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Enter keyword..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="flex-1 bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-2 text-xs text-zinc-200 outline-none focus:border-indigo-500/20"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={evaluatingKeyword}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2 text-xs font-bold transition"
+                  >
+                    Add
+                  </button>
+                </form>
+
+                {/* Youtube extractor block */}
+                <div className="border-t border-white/[0.03] pt-4 space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    <Key className="h-4 w-4 text-zinc-500" />
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Competitor tag extractor</span>
+                  </div>
                   
-                  {extractedTags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {extractedTags.map((tag, i) => (
-                        <button
-                          key={i}
-                          onClick={() => {
-                            // Copy tag directly on click!
-                            navigator.clipboard.writeText(tag);
-                            alert(`Copied "${tag}" to clipboard.`);
-                          }}
-                          className="flex items-center gap-1 text-[10px] font-mono font-semibold bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1 text-zinc-400 hover:text-indigo-300 hover:border-indigo-500/20 hover:bg-indigo-500/5 transition cursor-copy"
-                        >
-                          <span>{tag}</span>
-                          <Plus className="h-3 w-3 text-zinc-600 group-hover:text-indigo-400" />
-                        </button>
-                      ))}
+                  <div className="space-y-2">
+                    <input 
+                      type="text" 
+                      placeholder="Paste YouTube Video URL..."
+                      value={competitorUrl}
+                      onChange={e => setCompetitorUrl(e.target.value)}
+                      className="w-full bg-[#050508]/60 border border-white/[0.04] rounded-xl px-3 py-2 text-[10px] text-zinc-300 outline-none"
+                    />
+                    <button 
+                      onClick={handleExtractTags}
+                      disabled={extractLoading}
+                      className="w-full border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] text-zinc-300 rounded-xl py-2 text-xs font-bold transition flex items-center justify-center gap-1.5"
+                    >
+                      <RotateCw className={`h-3 w-3 ${extractLoading ? "animate-spin text-indigo-400" : ""}`} />
+                      <span>{extractLoading ? "Connecting API..." : "Extract Competitor Tags"}</span>
+                    </button>
+                  </div>
+
+                  {extractError && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-[9px] font-mono leading-normal">
+                      Error: {extractError}
                     </div>
-                  ) : (
-                    <div className="border border-dashed border-white/[0.02] rounded-xl p-8 text-center text-xs text-zinc-600">
-                      No tags extracted yet. Enter video URL.
+                  )}
+
+                  {extractedTags.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="text-[8px] uppercase font-bold text-zinc-500 tracking-wider">Extracted Cloud</span>
+                      <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto bg-black/40 p-2.5 rounded-xl border border-white/[0.02]">
+                        {extractedTags.map(tag => (
+                          <span 
+                            key={tag}
+                            className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded text-[8px] font-mono cursor-copy hover:bg-indigo-500/20 transition"
+                            onClick={() => navigator.clipboard.writeText(tag)}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Right Column: Visual Keyword Matrix */}
-              <div className="liquid-card rounded-2xl p-5 border border-white/[0.03] space-y-4 overflow-hidden flex flex-col h-full">
-                
-                {/* Search / Evaluate query */}
-                <div className="space-y-3 shrink-0">
-                  <div>
-                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Sliders className="h-4 w-4 text-emerald-400" /> Golden Target Matrix
-                    </h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Plot keywords. Top-left zones are high-volume, low-competition targets.</p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      placeholder="Enter target search keyword..."
-                      className="flex-1 bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none"
-                    />
-                    <button
-                      onClick={handleEvaluateKeyword}
-                      disabled={evaluatingKeyword || !searchQuery.trim()}
-                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-600/40 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition"
-                    >
-                      {evaluatingKeyword ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : "Evaluate"}
-                    </button>
-                  </div>
+              {/* Right Keyword Scatter Map */}
+              <div className="lg:col-span-2 liquid-card rounded-2xl border border-white/[0.03] p-5 flex flex-col justify-between overflow-hidden">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.03]">
+                  <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-1">
+                    <Sliders className="h-4.5 w-4.5 text-indigo-400" /> SEO Competition Scatter Map
+                  </h3>
+                  <span className="text-[8px] font-mono text-zinc-500 font-bold">X: COMPETITION | Y: SEARCH VOLUME</span>
                 </div>
 
-                {/* 2D Coordinate Grid Chart representation */}
-                <div className="flex-1 border border-white/[0.04] bg-[#050508]/60 rounded-xl relative overflow-hidden select-none p-4 min-h-[220px]">
-                  
-                  {/* Grid labels */}
-                  <span className="absolute top-2 left-2 text-[8px] font-bold font-mono uppercase tracking-wider text-rose-500/50">High Volume / High Comp (Hard)</span>
-                  <span className="absolute top-2 right-2 text-[8px] font-bold font-mono uppercase tracking-wider text-emerald-500/80">Golden Zones (High Vol / Low Comp)</span>
-                  <span className="absolute bottom-2 left-2 text-[8px] font-bold font-mono uppercase tracking-wider text-zinc-600">Low Volume / High Comp (Avoid)</span>
-                  <span className="absolute bottom-2 right-2 text-[8px] font-bold font-mono uppercase tracking-wider text-zinc-500/60">Low Volume / Low Comp (Niche)</span>
+                {/* 2D coordinate canvas map */}
+                <div className="flex-1 w-full h-[220px] bg-[#050508]/40 border border-white/[0.02] rounded-2xl relative overflow-hidden mt-4 p-4">
+                  {/* Scatter plot gridlines */}
+                  <div className="absolute inset-x-0 top-1/2 border-b border-dashed border-white/[0.015]" />
+                  <div className="absolute inset-y-0 left-1/2 border-r border-dashed border-white/[0.015]" />
 
-                  {/* Axis guides */}
-                  <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-white/[0.02]" />
-                  <div className="absolute inset-y-0 left-1/2 border-l border-dashed border-white/[0.02]" />
-
-                  {/* Render plotted coordinates points */}
-                  {keywordPoints.map((pt, index) => {
-                    // Map volume (0-100) to bottom-to-top layout: (100 - vol)%
-                    const topVal = 100 - pt.volume;
-                    // Map competition (0-100) to left-to-right layout: comp%
-                    const leftVal = pt.competition;
-
+                  {/* Bubble points */}
+                  {keywordPoints.map((pt, i) => {
+                    const mappedX = (pt.competition / 100) * 80 + 10; // offset percentage
+                    const mappedY = 100 - ((pt.volume / 100) * 80 + 10);
                     return (
                       <div 
-                        key={index}
-                        className="absolute group z-10 cursor-pointer"
-                        style={{ top: `${topVal}%`, left: `${leftVal}%`, transform: "translate(-50%, -50%)" }}
+                        key={i}
+                        className="absolute cursor-pointer group shrink-0"
+                        style={{ left: `${mappedX}%`, top: `${mappedY}%` }}
                       >
-                        {/* Glow dot */}
-                        <div className={`h-2.5 w-2.5 rounded-full ${
-                          pt.score > 75 
-                            ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" 
-                            : pt.score > 60 
-                            ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" 
-                            : "bg-amber-500"
-                        } relative`} />
-
-                        {/* Hover Tooltip card detail */}
-                        <div className="absolute left-4 top-0 -translate-y-1/2 scale-0 group-hover:scale-100 bg-[#0e0e13] border border-white/[0.08] backdrop-blur-md rounded-lg p-2.5 text-[9px] text-zinc-300 font-mono shadow-2xl min-w-[120px] transition duration-200 select-none z-30 pointer-events-none">
-                          <p className="font-bold text-white mb-1 truncate">{pt.keyword}</p>
-                          <div className="space-y-0.5">
-                            <p>Volume: <span className="font-bold">{pt.volume}%</span></p>
-                            <p>Comp: <span className="font-bold">{pt.competition}%</span></p>
-                            <p className="text-indigo-400">Score: <span className="font-bold">{pt.score}/100</span></p>
-                          </div>
+                        <div className="h-3 w-3 rounded-full bg-indigo-500 border border-white/10 group-hover:scale-125 transition" />
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/80 border border-white/[0.06] backdrop-blur-md rounded px-2 py-0.5 text-[8px] font-mono text-zinc-200 opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-10 pointer-events-none">
+                          <span className="font-bold text-indigo-400">{pt.keyword}</span> (Score: {pt.score})
                         </div>
                       </div>
                     );
                   })}
+
+                  {/* Corner tags */}
+                  <div className="absolute top-2 left-2 text-[7px] font-mono text-emerald-400 font-bold uppercase">High Volume / Easy Competitor (Sweetspot)</div>
+                  <div className="absolute bottom-2 right-2 text-[7px] font-mono text-rose-500 font-bold uppercase">Low Volume / Tough Competitor (Avoid)</div>
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto pt-3 border-t border-white/[0.02] mt-3">
+                  {keywordPoints.map((pt, i) => (
+                    <div key={i} className="flex flex-col gap-1 p-2 bg-[#050508]/30 border border-white/[0.03] rounded-xl text-[9px] shrink-0 w-36">
+                      <span className="font-bold text-zinc-300 truncate">{pt.keyword}</span>
+                      <div className="flex justify-between font-mono text-zinc-500 text-[8px]">
+                        <span>Vol: {pt.volume}%</span>
+                        <span className="text-indigo-400 font-bold">Score: {pt.score}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* SUBTAB 3: AI TITLE & CHAPTERS STUDIO */}
+          {/* SUBTAB 3: AI TITLE & CHAPTERS TIMELINES */}
           {activeSubTab === "seo" && (
             <motion.div
               key="seo"
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start"
             >
-              {/* Left Column: Title Brainstorm Engine */}
-              <div className="liquid-card rounded-2xl p-5 border border-white/[0.03] space-y-4 overflow-y-auto flex flex-col h-full">
-                <div className="space-y-3 shrink-0">
-                  <div>
-                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Sparkles className="h-4 w-4 text-indigo-400" /> Title Brainstorm Studio
-                    </h3>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">Generate high-CTR headlines categorized by cognitive frames.</p>
-                  </div>
+              {/* Left Chapters outline generation */}
+              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4 h-full flex flex-col justify-between overflow-hidden">
+                <div className="pb-1 border-b border-white/[0.04]">
+                  <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest font-mono">Chapters Timestamps Output</h3>
+                  <p className="text-[10px] text-zinc-500 mt-1">Paste outlines or speech text logs to generate YouTube readable timelines.</p>
+                </div>
 
+                <textarea
+                  value={scriptSnippet}
+                  onChange={e => setScriptSnippet(e.target.value)}
+                  className="w-full bg-[#050508]/60 border border-white/[0.04] focus:border-indigo-500/20 rounded-xl p-3 text-xs outline-none text-zinc-300 h-28 resize-none font-mono"
+                />
+
+                {aiChapters && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Generated Timestamps Chapters</span>
+                      <button
+                        onClick={handleCopyChapters}
+                        className="flex items-center gap-1 text-[9px] text-zinc-400 hover:text-zinc-200 transition"
+                      >
+                        {copiedChapters ? <CheckCircle className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                        <span>{copiedChapters ? "Copied" : "Copy Chapters"}</span>
+                      </button>
+                    </div>
+                    <div className="max-h-24 overflow-y-auto bg-black/40 p-3 rounded-xl border border-white/[0.03] text-[9px] font-mono text-zinc-300 leading-relaxed whitespace-pre-wrap select-text">
+                      {aiChapters}
+                    </div>
+                  </div>
+                )}
+
+                <button 
+                  onClick={handleGenerateChapters}
+                  disabled={aiLoading}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-2.5 text-xs font-bold shadow-lg transition shrink-0"
+                >
+                  {aiLoading ? "Thinking..." : "Generate Chapters timeline"}
+                </button>
+              </div>
+
+              {/* Right title brainstorm studio */}
+              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4 h-full flex flex-col justify-between overflow-hidden">
+                <div className="pb-1 border-b border-white/[0.04]">
+                  <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono">AI Title Brainstorm Studio</h3>
+                  <p className="text-[10px] text-zinc-500 mt-1">Generate headline alternatives categorized by clickable framework triggers.</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] uppercase font-bold text-zinc-500">Core Topic Focus</label>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
+                    <input 
+                      type="text" 
                       value={brainstormTopic}
                       onChange={e => setBrainstormTopic(e.target.value)}
-                      className="flex-1 bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-2 text-xs text-zinc-300 outline-none"
+                      className="flex-1 bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3 py-1.5 text-xs text-zinc-200 outline-none"
                     />
-                    <button
+                    <button 
                       onClick={handleBrainstormTitles}
-                      disabled={titlesLoading || !brainstormTopic.trim()}
-                      className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/40 text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition"
+                      disabled={titlesLoading}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0"
                     >
-                      {titlesLoading ? <RotateCw className="h-3.5 w-3.5 animate-spin" /> : "Brainstorm"}
+                      {titlesLoading ? "Brainstorming..." : "Brainstorm"}
                     </button>
                   </div>
                 </div>
 
-                {/* Generated frame list */}
-                <div className="flex-1 space-y-3 border-t border-white/[0.04] pt-3 overflow-y-auto pr-1">
+                <div className="flex-1 overflow-y-auto space-y-2 mt-2">
                   {Object.keys(brainstormingTitles).length > 0 ? (
-                    <div className="space-y-3.5">
-                      {Object.entries(brainstormingTitles).map(([frameKey, val]) => (
-                        <div 
-                          key={frameKey}
-                          onClick={() => {
-                            setVideoTitle(val);
-                            alert(`Set active simulator title to: "${val}"`);
-                          }}
-                          className="p-3 bg-[#050508]/30 border border-white/[0.03] hover:border-indigo-500/20 rounded-xl hover:bg-indigo-500/5 transition cursor-pointer select-none space-y-1"
-                        >
-                          <span className="text-[8px] font-bold font-mono uppercase tracking-wider text-indigo-400">{frameKey} hook frame</span>
-                          <p className="text-xs font-bold text-zinc-200 leading-snug">{val}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="border border-dashed border-white/[0.02] rounded-xl p-8 text-center text-xs text-zinc-600">
-                      Pending title brainstorm logs. Click Brainstorm.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Column: Chapters timestamps generator */}
-              <div className="bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-5 flex flex-col justify-between overflow-y-auto space-y-4">
-                <div className="space-y-4">
-                  <div className="pb-1 border-b border-white/[0.04]">
-                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Chapters Timestamps Output</h3>
-                    <p className="text-[10px] text-zinc-500 mt-1">Paste outlines or speech text logs to generate YouTube readable timelines.</p>
-                  </div>
-
-                  <textarea
-                    value={scriptSnippet}
-                    onChange={e => setScriptSnippet(e.target.value)}
-                    className="w-full bg-[#050508]/60 border border-white/[0.04] focus:border-indigo-500/20 rounded-xl p-3 text-xs outline-none text-zinc-300 h-28 resize-none font-mono"
-                  />
-
-                  {aiChapters && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">Generated Timestamps Chapters</span>
-                        <button
-                          onClick={handleCopyChapters}
-                          className="flex items-center gap-1 text-[9px] text-zinc-400 hover:text-zinc-200 transition"
-                        >
-                          {copiedChapters ? <CheckCircle className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                          <span>{copiedChapters ? "Copied" : "Copy Chapters"}</span>
-                        </button>
+                    Object.entries(brainstormingTitles).map(([framework, headline]) => (
+                      <div 
+                        key={framework} 
+                        className="p-3 bg-[#050508]/40 border border-white/[0.03] rounded-xl hover:border-indigo-500/20 transition cursor-pointer select-text"
+                        onClick={() => {
+                          setVideoTitle(headline);
+                          setActiveSubTab("preview");
+                        }}
+                      >
+                        <span className="text-[8px] font-mono font-bold text-indigo-400 uppercase tracking-widest block">{framework} formula</span>
+                        <p className="text-xs text-zinc-200 font-bold mt-1 leading-snug">{headline}</p>
                       </div>
-                      <pre className="p-3 bg-black/40 border border-white/[0.04] rounded-xl text-[10px] text-zinc-300 font-mono overflow-x-auto whitespace-pre-wrap max-h-32 overflow-y-auto leading-relaxed select-text">
-                        {aiChapters}
-                      </pre>
+                    ))
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-center p-6 text-zinc-600 text-[10px] border border-dashed border-white/[0.02] rounded-xl">
+                      Click Brainstorm above to suggest curated title hook formulas.
                     </div>
                   )}
                 </div>
-
-                <button
-                  onClick={handleGenerateChapters}
-                  disabled={aiLoading || !scriptSnippet.trim()}
-                  className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/40 text-white w-full py-2.5 rounded-xl text-xs font-semibold shadow-[0_4px_12px_rgba(99,102,241,0.25)] transition duration-300 shrink-0"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  <span>{aiLoading ? "Formatting..." : "Generate Chapters"}</span>
-                </button>
               </div>
             </motion.div>
           )}
 
-          {/* SUBTAB 4: CHECKLISTS */}
+          {/* SUBTAB 4: CHECKLISTS CONSOLE */}
           {activeSubTab === "checklist" && (
             <motion.div
               key="checklist"
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -5 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full overflow-y-auto"
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full items-start"
             >
-              {/* Pre-recording checklist */}
-              <div className="liquid-card rounded-2xl p-5 border border-white/[0.03] space-y-4 h-fit">
-                <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-white/[0.04]">
-                  <Volume2 className="h-4 w-4 text-indigo-400" /> Pre-Recording Checklist
-                </h3>
-                <div className="space-y-2">
+              {/* Recording checklist */}
+              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4">
+                <div className="flex items-center gap-1.5 pb-2 border-b border-white/[0.04]">
+                  <Volume2 className="h-4.5 w-4.5 text-indigo-400" />
+                  <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono">Pre-Shoot / Recording Checklist</h3>
+                </div>
+
+                <div className="space-y-3.5">
                   {recordingChecklist.map((item) => (
                     <div 
                       key={item.id}
                       onClick={() => toggleRecordingCheck(item.id)}
-                      className="flex items-center gap-3 p-2.5 bg-[#050508]/40 border border-white/[0.02] rounded-xl hover:border-white/[0.06] transition duration-200 cursor-pointer"
+                      className="flex items-start gap-3 cursor-pointer select-none"
                     >
-                      <input
+                      <input 
                         type="checkbox"
                         checked={item.checked}
-                        onChange={() => {}} 
-                        className="h-3.5 w-3.5 rounded border-white/[0.08] text-indigo-600 bg-black/40 outline-none"
+                        readOnly
+                        className="mt-0.5 accent-indigo-500 rounded bg-[#050508] border border-white/[0.05] h-3.5 w-3.5"
                       />
-                      <span className={`text-xs ${item.checked ? "line-through text-zinc-600" : "text-zinc-300"}`}>
+                      <span className={`text-xs ${item.checked ? "text-zinc-500 line-through" : "text-zinc-300 font-medium"}`}>
                         {item.label}
                       </span>
                     </div>
@@ -870,24 +896,26 @@ export default function MetadataStudioView() {
               </div>
 
               {/* Editing checklist */}
-              <div className="liquid-card rounded-2xl p-5 border border-white/[0.03] space-y-4 h-fit">
-                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2 pb-2 border-b border-white/[0.04]">
-                  <Video className="h-4 w-4 text-emerald-400" /> Post-Production Checklist
-                </h3>
-                <div className="space-y-2">
+              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4">
+                <div className="flex items-center gap-1.5 pb-2 border-b border-white/[0.04]">
+                  <Video className="h-4.5 w-4.5 text-emerald-400" />
+                  <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest font-mono">Post-Shoot / Editing Checklist</h3>
+                </div>
+
+                <div className="space-y-3.5">
                   {editingChecklist.map((item) => (
                     <div 
                       key={item.id}
                       onClick={() => toggleEditingCheck(item.id)}
-                      className="flex items-center gap-3 p-2.5 bg-[#050508]/40 border border-white/[0.02] rounded-xl hover:border-white/[0.06] transition duration-200 cursor-pointer"
+                      className="flex items-start gap-3 cursor-pointer select-none"
                     >
-                      <input
+                      <input 
                         type="checkbox"
                         checked={item.checked}
-                        onChange={() => {}}
-                        className="h-3.5 w-3.5 rounded border-white/[0.08] text-emerald-600 bg-black/40 outline-none"
+                        readOnly
+                        className="mt-0.5 accent-indigo-500 rounded bg-[#050508] border border-white/[0.05] h-3.5 w-3.5"
                       />
-                      <span className={`text-xs ${item.checked ? "line-through text-zinc-600" : "text-zinc-300"}`}>
+                      <span className={`text-xs ${item.checked ? "text-zinc-500 line-through" : "text-zinc-300 font-medium"}`}>
                         {item.label}
                       </span>
                     </div>
@@ -896,6 +924,7 @@ export default function MetadataStudioView() {
               </div>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
     </div>

@@ -1,5 +1,14 @@
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Idea {
   id: string;
+  projectId: string | null;
   title: string;
   description: string | null;
   category: string | null;
@@ -12,6 +21,37 @@ export interface Idea {
   links: string | null; // JSON array of {title, url}
   notes: string | null;
   status: "Idea" | "Research" | "Scripting" | "Recording" | "Editing" | "Thumbnail" | "Scheduled" | "Published" | "Archived";
+  
+  // Production metadata (from MetadataStudio checklists & layout)
+  recordingChecklist: string | null; // JSON list of strings
+  editingChecklist: string | null; // JSON list of strings
+  durationBadge: string | null;
+  progressPercent: number;
+  thumbnailStartColor: string | null;
+  thumbnailEndColor: string | null;
+  thumbnailText: string | null;
+
+  // Actual published analytics
+  actualViews: number;
+  actualCtr: number;
+  actualRetention: number;
+  actualSubscribers: number;
+  actualWatchTime: number;
+  actualRpm: number;
+  publishedAt: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Script {
+  id: string;
+  ideaId: string;
+  title: string;
+  content: string | null;
+  durationEstimated: number | null;
+  readingTime: number | null;
+  status: "Draft" | "Review" | "Completed";
   createdAt: string;
   updatedAt: string;
 }
@@ -36,13 +76,24 @@ export interface Settings {
   apiKey: string | null;
   defaultDescription: string | null;
   brandColors: string | null; // JSON color array
-  brandFonts: string | null; // JSON font array (used for YouTube credentials config JSON)
+  brandFonts: string | null; // JSON font array
   updatedAt: string;
 }
+
+const MOCK_PROJECTS: Project[] = [
+  {
+    id: "main-channel-workspace",
+    name: "Main Channel Workspace",
+    description: "Default workspace channel content project.",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+];
 
 const MOCK_IDEAS: Idea[] = [
   {
     id: "1",
+    projectId: "main-channel-workspace",
     title: "Building an operating system for YouTubers (CreatorOS)",
     description: "A deep dive into Electron + Next.js architecture, SQLite local database, and Ollama integration.",
     category: "Coding",
@@ -55,11 +106,26 @@ const MOCK_IDEAS: Idea[] = [
     links: JSON.stringify([{ title: "Electron Docs", url: "https://electronjs.org" }]),
     notes: "Must detail the IPC connection mechanism so viewers understand main vs renderer.",
     status: "Scripting",
+    recordingChecklist: JSON.stringify(["Setup screen recorder", "Clean desktop icons", "Test voice microphone level"]),
+    editingChecklist: JSON.stringify(["Add zooming code zooms", "Add smooth custom overlays", "Apply color preset"]),
+    durationBadge: "14:20",
+    progressPercent: 45,
+    thumbnailStartColor: "#a855f7",
+    thumbnailEndColor: "#6366f1",
+    thumbnailText: "BUILD AN APP IN 24H",
+    actualViews: 0,
+    actualCtr: 0,
+    actualRetention: 0,
+    actualSubscribers: 0,
+    actualWatchTime: 0,
+    actualRpm: 0,
+    publishedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   },
   {
     id: "2",
+    projectId: "main-channel-workspace",
     title: "10 CSS Tricks I wish I knew earlier",
     description: "Highlighting anchor positioning, container queries, subgrid, and modern scroll-driven animations.",
     category: "Tutorial",
@@ -72,25 +138,36 @@ const MOCK_IDEAS: Idea[] = [
     links: null,
     notes: "Make the visuals very clean. Zoom in on CSS panel in chrome.",
     status: "Research",
+    recordingChecklist: null,
+    editingChecklist: null,
+    durationBadge: null,
+    progressPercent: 15,
+    thumbnailStartColor: "#06b6d4",
+    thumbnailEndColor: "#3b82f6",
+    thumbnailText: "10 CSS TRICKS",
+    actualViews: 0,
+    actualCtr: 0,
+    actualRetention: 0,
+    actualSubscribers: 0,
+    actualWatchTime: 0,
+    actualRpm: 0,
+    publishedAt: null,
     createdAt: new Date(Date.now() - 86400000).toISOString(),
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
+  }
+];
+
+const MOCK_SCRIPTS: Script[] = [
   {
-    id: "3",
-    title: "My $1000/mo desk setup tour",
-    description: "Going through my minimalist workspace layout, monitor arm, and mechanical keyboard.",
-    category: "Vlog",
-    tags: JSON.stringify(["setup", "tech", "minimalist"]),
-    priority: "Low",
-    difficulty: "Medium",
-    estimatedViews: 8000,
-    inspiration: "Minimalist setup channels on YouTube",
-    referencesText: "Product links and descriptions ready",
-    links: null,
-    notes: "Ensure B-roll has nice lighting and shadows.",
-    status: "Idea",
-    createdAt: new Date(Date.now() - 172800000).toISOString(),
-    updatedAt: new Date(Date.now() - 172800000).toISOString(),
+    id: "script-1",
+    ideaId: "1",
+    title: "Script: Building CreatorOS",
+    content: "# Introduction\nWelcome back to the channel! Today we are looking at the core design rules of desktop software...\n\n# Hook\nDid you know that 85% of developers abandon desktop projects before compiling their first build? Today, I'm showing you the toolchain that bypasses this problem entirely.\n\n# Body\nFirst, we outline how Electron manages background node runtimes while Next.js coordinates clientside UI rendering...",
+    durationEstimated: 860,
+    readingTime: 340,
+    status: "Draft",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 ];
 
@@ -123,9 +200,32 @@ const MOCK_SETTINGS: Settings = {
 const isElectron = typeof window !== "undefined" && "electron" in window;
 
 export const ipc = {
+  projects: {
+    list: async (): Promise<Project[]> => {
+      if (isElectron) return (window as any).electron.projects.list();
+      return MOCK_PROJECTS;
+    },
+    create: async (project: Omit<Project, "createdAt" | "updatedAt">): Promise<void> => {
+      const fullProject = {
+        ...project,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (isElectron) return (window as any).electron.projects.create(fullProject);
+      MOCK_PROJECTS.unshift(fullProject as Project);
+    },
+    delete: async (id: string): Promise<void> => {
+      if (isElectron) return (window as any).electron.projects.delete(id);
+      const index = MOCK_PROJECTS.findIndex(p => p.id === id);
+      if (index !== -1) {
+        MOCK_PROJECTS.splice(index, 1);
+      }
+    }
+  },
   ideas: {
-    list: async (): Promise<Idea[]> => {
-      if (isElectron) return (window as any).electron.ideas.list();
+    list: async (projectId?: string): Promise<Idea[]> => {
+      if (isElectron) return (window as any).electron.ideas.list(projectId);
+      if (projectId) return MOCK_IDEAS.filter(i => i.projectId === projectId);
       return MOCK_IDEAS;
     },
     get: async (id: string): Promise<Idea | null> => {
@@ -153,6 +253,26 @@ export const ipc = {
       const index = MOCK_IDEAS.findIndex(i => i.id === id);
       if (index !== -1) {
         MOCK_IDEAS.splice(index, 1);
+      }
+    }
+  },
+  scripts: {
+    getByIdea: async (ideaId: string): Promise<Script | null> => {
+      if (isElectron) return (window as any).electron.scripts.getByIdea(ideaId);
+      return MOCK_SCRIPTS.find(s => s.ideaId === ideaId) || null;
+    },
+    update: async (script: Omit<Script, "createdAt" | "updatedAt">): Promise<void> => {
+      const fullScript = {
+        ...script,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as Script;
+      if (isElectron) return (window as any).electron.scripts.update(fullScript);
+      const index = MOCK_SCRIPTS.findIndex(s => s.id === script.id);
+      if (index !== -1) {
+        MOCK_SCRIPTS[index] = fullScript;
+      } else {
+        MOCK_SCRIPTS.push(fullScript);
       }
     }
   },
@@ -203,7 +323,7 @@ export const ipc = {
       if (isElectron) return (window as any).electron.db.backup();
       return {
         ideas: MOCK_IDEAS,
-        scripts: [],
+        scripts: MOCK_SCRIPTS,
         settings: [MOCK_SETTINGS],
         analytics: MOCK_ANALYTICS
       };

@@ -1,8 +1,18 @@
 import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
+// Projects table
+export const projects = sqliteTable("projects", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 // Ideas table
 export const ideas = sqliteTable("ideas", {
   id: text("id").primaryKey(),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category"), // e.g. "Coding", "Vlog", "Tutorial"
@@ -15,6 +25,25 @@ export const ideas = sqliteTable("ideas", {
   links: text("links"), // JSON array of { title, url }
   notes: text("notes"),
   status: text("status").notNull().default("Idea"), // "Idea", "Research", "Scripting", "Recording", "Editing", "Thumbnail", "Scheduled", "Published", "Archived"
+  
+  // Production metadata (from MetadataStudio checklist & thumbnails)
+  recordingChecklist: text("recording_checklist"), // JSON list of items
+  editingChecklist: text("editing_checklist"), // JSON list of items
+  durationBadge: text("duration_badge"),
+  progressPercent: integer("progress_percent").default(0),
+  thumbnailStartColor: text("thumbnail_start_color"),
+  thumbnailEndColor: text("thumbnail_end_color"),
+  thumbnailText: text("thumbnail_text"),
+
+  // Actual published analytics
+  actualViews: integer("actual_views").default(0),
+  actualCtr: real("actual_ctr").default(0.0),
+  actualRetention: real("actual_retention").default(0.0),
+  actualSubscribers: integer("actual_subscribers").default(0),
+  actualWatchTime: real("actual_watch_time").default(0.0),
+  actualRpm: real("actual_rpm").default(0.0),
+  publishedAt: text("published_at"),
+
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
@@ -24,7 +53,7 @@ export const scripts = sqliteTable("scripts", {
   id: text("id").primaryKey(),
   ideaId: text("idea_id").references(() => ideas.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  content: text("content"), // Rich text JSON or HTML
+  content: text("content"), // Markdown draft
   durationEstimated: integer("duration_estimated"), // in seconds
   readingTime: integer("reading_time"), // in seconds
   status: text("status").notNull().default("Draft"), // "Draft", "Review", "Completed"
@@ -32,7 +61,7 @@ export const scripts = sqliteTable("scripts", {
   updatedAt: text("updated_at").notNull(),
 });
 
-// Analytics table (for snapshots)
+// Analytics table (for snaps)
 export const analytics = sqliteTable("analytics", {
   id: text("id").primaryKey(),
   views: integer("views").notNull().default(0),
@@ -54,6 +83,6 @@ export const settings = sqliteTable("settings", {
   apiKey: text("api_key"),
   defaultDescription: text("default_description"),
   brandColors: text("brand_colors"), // JSON array of colors
-  brandFonts: text("brand_fonts"), // JSON array of fonts
+  brandFonts: text("brand_fonts"), // JSON array of fonts (used for credentials masks)
   updatedAt: text("updated_at").notNull(),
 });

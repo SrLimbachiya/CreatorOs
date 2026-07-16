@@ -28,7 +28,7 @@ import { ipc } from "../../lib/ipc";
 type ChartMetric = "views" | "ctr" | "retention";
 
 export default function DashboardView() {
-  const { ideas, analytics, settings, loadAll, createIdea, setActiveView } = useStore();
+  const { ideas, analytics, settings, loadAll, createIdea, setActiveView, setActiveIdea } = useStore();
   
   // States
   const [activeChartMetric, setActiveChartMetric] = useState<ChartMetric>("views");
@@ -100,7 +100,7 @@ export default function DashboardView() {
   };
 
   const activeVideos = ideas.filter(
-    idea => ["Research", "Scripting", "Recording", "Editing", "Thumbnail"].includes(idea.status)
+    idea => !["Published", "Archived"].includes(idea.status)
   ).slice(0, 5); // Expanded to show more rows in fullscreen
 
   const recentIdeas = ideas.filter(idea => idea.status === "Idea").slice(0, 5);
@@ -388,15 +388,23 @@ export default function DashboardView() {
                           </td>
                           <td className="py-3.5">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider font-mono border ${
+                              video.status === "Idea" ? "bg-zinc-500/10 border-zinc-500/20 text-zinc-400" :
+                              video.status === "Research" ? "bg-blue-500/10 border-blue-500/20 text-blue-400" :
                               video.status === "Scripting" ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-400" :
                               video.status === "Recording" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
                               video.status === "Editing" ? "bg-violet-500/10 border-violet-500/20 text-violet-400" :
+                              video.status === "Thumbnail" ? "bg-pink-500/10 border-pink-500/20 text-pink-400" :
+                              video.status === "Scheduled" ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" :
                               "bg-amber-500/10 border-amber-500/20 text-amber-400"
                             }`}>
                               <span className={`h-1.5 w-1.5 rounded-full ${
+                                video.status === "Idea" ? "bg-zinc-400" :
+                                video.status === "Research" ? "bg-blue-400" :
                                 video.status === "Scripting" ? "bg-indigo-400" :
                                 video.status === "Recording" ? "bg-emerald-400" :
                                 video.status === "Editing" ? "bg-violet-400" :
+                                video.status === "Thumbnail" ? "bg-pink-400" :
+                                video.status === "Scheduled" ? "bg-cyan-400" :
                                 "bg-amber-400"
                               }`} />
                               {video.status}
@@ -411,7 +419,20 @@ export default function DashboardView() {
                             {video.estimatedViews ? `${(video.estimatedViews / 1000).toFixed(0)}K views` : "8.5K views"}
                           </td>
                           <td className="py-3.5 pr-2 text-right">
-                            <button onClick={() => setActiveView("ideas")} className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-400 hover:text-zinc-200">
+                            <button 
+                              onClick={() => { 
+                                setActiveIdea(video); 
+                                if (video.status === "Idea" || video.status === "Research") {
+                                  setActiveView("workspace");
+                                } else if (video.status === "Scripting") {
+                                  setActiveView("scripts");
+                                } else {
+                                  setActiveView("metadata");
+                                }
+                              }} 
+                              className="opacity-0 group-hover:opacity-100 transition p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-zinc-400 hover:text-zinc-200" 
+                              title="Open Context"
+                            >
                               <ArrowUpRight className="h-3.5 w-3.5" />
                             </button>
                           </td>

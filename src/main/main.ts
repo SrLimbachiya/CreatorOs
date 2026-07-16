@@ -68,10 +68,44 @@ function registerIpcHandlers() {
     return path.join(dbFolder, "creatoros.db");
   });
 
-  // Ideas Handlers
-  ipcMain.handle("ideas:list", async () => {
+  // Projects Handlers
+  ipcMain.handle("projects:list", async () => {
     try {
       const db = getDb();
+      return await db.select().from(schema.projects).orderBy(desc(schema.projects.updatedAt)).all();
+    } catch (error) {
+      console.error("[IPC] projects:list error:", error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("projects:create", async (_, project: typeof schema.projects.$inferInsert) => {
+    try {
+      const db = getDb();
+      return await db.insert(schema.projects).values(project).run();
+    } catch (error) {
+      console.error("[IPC] projects:create error:", error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("projects:delete", async (_, id: string) => {
+    try {
+      const db = getDb();
+      return await db.delete(schema.projects).where(eq(schema.projects.id, id)).run();
+    } catch (error) {
+      console.error("[IPC] projects:delete error:", error);
+      throw error;
+    }
+  });
+
+  // Ideas Handlers
+  ipcMain.handle("ideas:list", async (_, projectId?: string) => {
+    try {
+      const db = getDb();
+      if (projectId) {
+        return await db.select().from(schema.ideas).where(eq(schema.ideas.projectId, projectId)).orderBy(desc(schema.ideas.updatedAt)).all();
+      }
       return await db.select().from(schema.ideas).orderBy(desc(schema.ideas.updatedAt)).all();
     } catch (error) {
       console.error("[IPC] ideas:list error:", error);
@@ -116,6 +150,41 @@ function registerIpcHandlers() {
       return await db.delete(schema.ideas).where(eq(schema.ideas.id, id)).run();
     } catch (error) {
       console.error(`[IPC] ideas:delete error for id ${id}:`, error);
+      throw error;
+    }
+  });
+
+  // Scripts Handlers
+  ipcMain.handle("scripts:getByIdea", async (_, ideaId: string) => {
+    try {
+      const db = getDb();
+      const results = await db.select().from(schema.scripts).where(eq(schema.scripts.ideaId, ideaId)).all();
+      return results[0] || null;
+    } catch (error) {
+      console.error(`[IPC] scripts:getByIdea error for ideaId ${ideaId}:`, error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle("scripts:update", async (_, script: typeof schema.scripts.$inferInsert) => {
+    try {
+      const db = getDb();
+      // Use helper checking if script exists to update it, otherwise insert it
+      const results = await db.select({ id: schema.scripts.id }).from(schema.scripts).where(eq(schema.scripts.id, script.id)).all();
+      if (results.length > 0) {
+        return await db.update(schema.scripts).set({
+          title: script.title,
+          content: script.content,
+          durationEstimated: script.durationEstimated,
+          readingTime: script.readingTime,
+          status: script.status,
+          updatedAt: new Date().toISOString()
+        }).where(eq(schema.scripts.id, script.id)).run();
+      } else {
+        return await db.insert(schema.scripts).values(script).run();
+      }
+    } catch (error) {
+      console.error("[IPC] scripts:update error:", error);
       throw error;
     }
   });

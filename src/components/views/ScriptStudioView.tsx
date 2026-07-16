@@ -10,18 +10,18 @@ import {
   HelpCircle,
   Copy,
   CheckCircle2,
-  ListTodo
+  ListTodo,
+  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStore } from "../../hooks/useStore";
 import { ipc } from "../../lib/ipc";
 
 export default function ScriptStudioView() {
-  const [scriptTitle, setScriptTitle] = useState("Unfinished Script Concept");
-  const [scriptContent, setScriptContent] = useState(
-    "# Introduction\nWelcome back to the channel! Today we are looking at the core design rules of desktop software...\n\n# Hook\nDid you know that 85% of developers abandon desktop projects before compiling their first build? Today, I'm showing you the toolchain that bypasses this problem entirely.\n\n# Body\nFirst, we outline how Electron manages background node runtimes while Next.js coordinates clientside UI rendering..."
-  );
+  const { activeIdea, ideas, setActiveIdea } = useStore();
 
-  // Statistics
+  const [scriptTitle, setScriptTitle] = useState("");
+  const [scriptContent, setScriptContent] = useState("");
   const [wordCount, setWordCount] = useState(0);
   const [readingTime, setReadingTime] = useState(0); // in seconds
   
@@ -30,6 +30,70 @@ export default function ScriptStudioView() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 1. Fetch script draft from database on activeIdea context change
+  useEffect(() => {
+    if (!activeIdea) return;
+    
+    const loadScriptDraft = async () => {
+      try {
+        const draft = await ipc.scripts.getByIdea(activeIdea.id);
+        if (draft) {
+          setScriptTitle(draft.title);
+          setScriptContent(draft.content || "");
+        } else {
+          // Initialize a default starter script template
+          const newId = `script-${activeIdea.id}`;
+          const blankTemplate = {
+            id: newId,
+            ideaId: activeIdea.id,
+            title: `Draft: ${activeIdea.title}`,
+            content: `# Introduction\nWelcome back to the channel! Today we are looking at...\n\n# Hook\nDid you know that...\n\n# Body\nFirst, let's detail the core concepts...\n\n# Conclusion\nThanks for watching, make sure to subscribe!`,
+            durationEstimated: 0,
+            readingTime: 0,
+            status: "Draft" as const,
+          };
+          await ipc.scripts.update(blankTemplate);
+          setScriptTitle(blankTemplate.title);
+          setScriptContent(blankTemplate.content);
+        }
+      } catch (err) {
+        console.error("Failed to load script draft:", err);
+      }
+    };
+
+    loadScriptDraft();
+  }, [activeIdea?.id]);
+
+  // 2. Autosave script draft to database with 1 second typing debounce
+  useEffect(() => {
+    if (!activeIdea || !scriptTitle) return;
+
+    setIsSaving(true);
+    const saveTimeout = setTimeout(async () => {
+      try {
+        const words = scriptContent.trim() ? scriptContent.trim().split(/\s+/).length : 0;
+        const durationSeconds = Math.round(words / 2.5); // ~150 WPM
+
+        await ipc.scripts.update({
+          id: `script-${activeIdea.id}`,
+          ideaId: activeIdea.id,
+          title: scriptTitle,
+          content: scriptContent,
+          durationEstimated: durationSeconds,
+          readingTime: durationSeconds,
+          status: "Draft",
+        });
+      } catch (err) {
+        console.error("Failed to autosave script:", err);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000);
+
+    return () => clearTimeout(saveTimeout);
+  }, [scriptContent, scriptTitle, activeIdea?.id]);
 
   // Calculate statistics dynamically
   useEffect(() => {
@@ -41,7 +105,6 @@ export default function ScriptStudioView() {
     }
     const words = cleanContent.split(/\s+/).length;
     setWordCount(words);
-    // Standard reading speed: ~150 words per minute (2.5 words per second)
     const durationSeconds = Math.round(words / 2.5);
     setReadingTime(durationSeconds);
   }, [scriptContent]);
@@ -59,15 +122,16 @@ export default function ScriptStudioView() {
           fullPrompt = `Write 3 alternative YouTube hooks (under 15 seconds reading time) using Curiosity and Pattern Interrupt structures based on this script concept:\n\n"${scriptContent.slice(0, 800)}"`;
           break;
         case "broll":
-          fullPrompt = `Analyze this script section and suggest 3 highly engaging B-roll video clips or animations to overlay to prevent viewer dropoff:\n\n"${scriptContent.slice(0, 1000)}"`;
+          fullPrompt = `Suggest specific cinematic B-Roll overlays and visual graphics to accompany this segment of the script:\n\n"${scriptContent.slice(0, 800)}"`;
           break;
         case "cta":
-          fullPrompt = `Generate a compelling Call To Action (CTA) pointing users to subscribe and check other coding links based on this script:\n\n"${scriptContent.slice(0, 800)}"`;
+          fullPrompt = `Draft an engaging, high-conversion Call-To-Action (CTA) prompting viewers to subscribe or check out a link based on this video script:\n\n"${scriptContent.slice(0, 800)}"`;
           break;
-        default:
-          fullPrompt = `${prompt}\n\nReference script context:\n"${scriptContent.slice(0, 1000)}"`;
+        case "custom":
+          fullPrompt = `${prompt}\n\nTarget Script Reference:\n"${scriptContent.slice(0, 1200)}"`;
+          break;
       }
-
+      
       const response = await ipc.ai.chat(fullPrompt);
       setAiResult(response);
     } catch (err) {
@@ -83,26 +147,70 @@ export default function ScriptStudioView() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const formatDuration = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+  const formatDuration = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
+
+  // Render selection prompt if no active video scope is select
+  if (!activeIdea) {
+    return (
+      <div className="h-[calc(100vh-150px)] flex flex-col items-center justify-center text-center p-8 select-none">
+        <div className="p-4 rounded-full bg-white/[0.02] border border-white/[0.04] text-zinc-500 mb-4 animate-pulse">
+          <PenTool className="h-10 w-10 text-indigo-400" />
+        </div>
+        <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-widest">No Active Video Scope</h2>
+        <p className="text-xs text-zinc-500 max-w-sm mt-2 leading-relaxed">
+          Script drafting workspace is tied contextually to individual videos. Select a video from the active project list below to open the editor:
+        </p>
+
+        <div className="mt-6 w-full max-w-md space-y-2">
+          {ideas.length === 0 ? (
+            <p className="text-[10px] text-zinc-600 font-mono">Create an idea in the Idea Vault to start drafting.</p>
+          ) : (
+            ideas.slice(0, 4).map((idea) => (
+              <button
+                key={idea.id}
+                onClick={() => setActiveIdea(idea)}
+                className="w-full flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-indigo-500/30 rounded-xl text-left text-xs font-semibold text-zinc-300 hover:text-white transition group"
+              >
+                <span className="truncate pr-2">🎬 {idea.title}</span>
+                <span className="text-[9px] uppercase font-mono text-indigo-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                  Open Editor <ArrowRight className="h-3 w-3" />
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between select-none">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <PenTool className="h-5 w-5 text-indigo-400" />
-            <span>Script Studio</span>
-          </h1>
-          <p className="text-xs text-zinc-400">Rich text editor with dynamic duration calculations and embedded AI rewrite helper sidebars.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <PenTool className="h-5 w-5 text-indigo-400" />
+              <span>Script Writing Studio</span>
+            </h1>
+            <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+              Scope: {activeIdea.title}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">Draft outlines, hooks, and body details. Leverage AI rewriting options, and autosave script progress.</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Mock stats badge */}
+        <div className="flex items-center gap-2.5">
+          {/* Status Indicator */}
+          <div className="text-[9px] uppercase tracking-wider font-mono font-bold text-zinc-500 bg-white/[0.01] border border-white/[0.04] px-3 py-1.5 rounded-xl">
+            {isSaving ? "Autosaving..." : "All changes saved"}
+          </div>
+
+          {/* Duration estimated */}
           <div className="flex items-center gap-1 text-[10px] bg-white/[0.02] border border-white/[0.04] px-3 py-1.5 rounded-xl text-zinc-400 font-medium">
             <Clock className="h-3.5 w-3.5 text-zinc-500" />
             <span>Est. Duration: {formatDuration(readingTime)}</span>
@@ -119,6 +227,7 @@ export default function ScriptStudioView() {
               value={scriptTitle}
               onChange={e => setScriptTitle(e.target.value)}
               className="bg-transparent border-0 outline-none text-sm font-bold text-white w-[80%] focus:border-b focus:border-white/10"
+              placeholder="Script Title..."
             />
             <div className="text-[10px] text-zinc-500 font-bold font-mono">
               {wordCount} words
@@ -129,7 +238,7 @@ export default function ScriptStudioView() {
             value={scriptContent}
             onChange={e => setScriptContent(e.target.value)}
             placeholder="Start drafting your YouTube script..."
-            className="flex-1 w-full bg-transparent outline-none border-0 text-xs text-zinc-200 leading-relaxed font-mono resize-none overflow-y-auto pr-2"
+            className="flex-1 w-full bg-transparent outline-none border-0 text-xs text-zinc-200 leading-relaxed font-mono resize-none overflow-y-auto pr-2 select-text"
           />
         </div>
 
@@ -220,14 +329,14 @@ export default function ScriptStudioView() {
                     )}
                   </button>
                 </div>
-                <p className="text-[10px] text-zinc-300 leading-relaxed font-mono whitespace-pre-wrap">
+                <p className="text-[10px] text-zinc-300 leading-relaxed font-mono whitespace-pre-wrap select-text">
                   {aiResult}
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-zinc-500 gap-2 border border-dashed border-white/[0.02] rounded-xl">
-              <ListTodo className="h-8 w-8 text-zinc-700" />
+              <ListTodo className="h-8 w-8 text-zinc-700 animate-pulse" />
               <span className="text-[10px] leading-normal font-sans">
                 Choose a preset action or run a custom prompt. The AI parses the active editor viewport text and generates custom additions.
               </span>

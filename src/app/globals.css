@@ -148,10 +148,9 @@ html {
 
 .liquid-card:hover {
   background: var(--glass-bg);
-  filter: brightness(1.15);
-  border-color: var(--primary-color);
-  box-shadow: 0 15px 45px 0 var(--primary-color), 0 0 1px 1px var(--primary-color) inset;
-  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
 }
 
 .liquid-input {
@@ -210,3 +209,83 @@ html {
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ==========================================
+   Light Theme Comprehensive Overrides
+   ========================================== */
+.light-theme {
+  color: #0f172a !important;
+}
+
+.light-theme .bg-black\/20 {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.light-theme .bg-zinc-950\/20 {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-theme .bg-black\/40 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  color: #0f172a !important;
+}
+
+.light-theme .bg-\[\#050508\]\/80,
+.light-theme .bg-\[\#050508\]\/60,
+.light-theme .bg-\[\#050508\]\/40,
+.light-theme .bg-\[\#050508\] {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  color: #0f172a !important;
+}
+
+.light-theme .bg-\[\#0e0e13\],
+.light-theme .bg-\[\#0e0e13\]\/85,
+.light-theme .bg-\[\#0e0e13\]\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  color: #0f172a !important;
+}
+
+.light-theme select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.light-theme input,
+.light-theme select,
+.light-theme textarea {
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+.light-theme input::placeholder,
+.light-theme textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Dashboard chart adjustments */
+.light-theme text {
+  fill: #475569 !important;
+}
+
+/* Kanban / Vault custom overrides */
+.light-theme .text-zinc-300,
+.light-theme .text-zinc-200,
+.light-theme .text-white {
+  color: #0f172a !important;
+}
+
+.light-theme .text-zinc-400,
+.light-theme .text-zinc-500 {
+  color: #475569 !important;
+}
+
+.light-theme .border-white\/\[0\.03\],
+.light-theme .border-white\/\[0\.04\],
+.light-theme .border-white\/\[0\.05\],
+.light-theme .border-white\/\[0\.06\],
+.light-theme .border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+

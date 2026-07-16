@@ -13,7 +13,9 @@ import {
   SearchCode,
   Clapperboard,
   Sun,
-  Moon
+  Moon,
+  FolderOpen,
+  Plus
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ipc } from "../lib/ipc";
@@ -25,9 +27,38 @@ interface SidebarItemProps {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { activeView, setActiveView, settings, updateSettings, loadAll } = useStore();
+  const { 
+    activeView, 
+    setActiveView, 
+    settings, 
+    updateSettings, 
+    loadAll,
+    projects,
+    activeProject,
+    selectProject,
+    createProject,
+    ideas,
+    activeIdea,
+    setActiveIdea
+  } = useStore();
+  
   const [searchOpen, setSearchOpen] = useState(false);
   const [aiOnline, setAiOnline] = useState<boolean | null>(null);
+
+  // Custom project modal state
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDesc, setNewProjectDesc] = useState("");
+
+  const handleCreateProjectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProjectName.trim()) return;
+    
+    await createProject(newProjectName.trim(), newProjectDesc.trim() || null);
+    setNewProjectName("");
+    setNewProjectDesc("");
+    setIsNewProjectModalOpen(false);
+  };
 
   useEffect(() => {
     loadAll();
@@ -132,7 +163,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   } as React.CSSProperties;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden text-zinc-100 relative" style={customStyles}>
+    <div className={`flex h-screen w-screen overflow-hidden text-zinc-100 relative bg-[var(--bg-canvas)] transition-colors duration-300 ${isLight ? "light-theme" : "dark-theme"}`} style={customStyles}>
       {/* SVG Liquid Refraction Filter Primitive */}
       <svg className="absolute w-0 h-0 pointer-events-none select-none">
         <defs>
@@ -166,7 +197,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="h-10 w-full shrink-0" />
 
         {/* Logo Section */}
-        <div className="px-6 py-5 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="relative">
               <div className="h-3.5 w-3.5 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 shadow-[0_0_15px_rgba(99,102,241,0.6)]" />
@@ -179,6 +210,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span className="text-[9px] text-zinc-500 font-mono border border-[var(--glass-border)] rounded-full bg-white/[0.02] px-2 py-0.5 select-none font-bold">
             v0.1.0
           </span>
+        </div>
+
+        {/* Project Selector */}
+        <div className="px-4 mb-4 shrink-0 titlebar-no-drag">
+          <div className="flex flex-col gap-2 border-b border-white/[0.03] pb-3.5">
+            <span className="text-[8px] uppercase tracking-widest font-bold text-zinc-500 px-1 flex items-center gap-1">
+              <FolderOpen className="h-2.5 w-2.5 text-indigo-400" /> Workspace Project
+            </span>
+            <select
+              value={activeProject?.id || ""}
+              onChange={(e) => selectProject(e.target.value)}
+              className="w-full h-8 bg-black/40 border border-[var(--glass-border)] rounded-xl px-3 py-0 text-xs font-bold text-zinc-200 outline-none hover:bg-white/[0.03] transition"
+            >
+              {projects.map((proj) => (
+                <option key={proj.id} value={proj.id} className="bg-[#0e0e13] text-zinc-200 font-sans">
+                  📁 {proj.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setIsNewProjectModalOpen(true)}
+              className="w-full h-8 flex items-center justify-center gap-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-300 rounded-xl text-[10px] font-bold tracking-wider uppercase transition"
+              title="Create New Project"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>New Project</span>
+            </button>
+          </div>
         </div>
 
         {/* Global Search Button */}
@@ -222,7 +281,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        {/* Bottom AI Status bar with Light Mode Toggle */}
+        {/* Bottom AI Status bar */}
         <div className="p-4 border-t border-[var(--glass-border)] bg-black/[0.15] flex items-center justify-between text-xs shrink-0 select-none titlebar-no-drag">
           <div className="flex items-center gap-2 text-zinc-400 font-semibold">
             <Sparkles className={`h-3.5 w-3.5 ${aiOnline ? "text-indigo-400 animate-pulse" : "text-zinc-600"}`} />
@@ -253,6 +312,39 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Panel View Container */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-transparent">
+        {/* Top Navbar Header */}
+        <header className="h-14 border-b border-[var(--glass-border)] bg-black/[0.1] backdrop-blur-md flex items-center justify-between px-8 shrink-0 select-none titlebar-no-drag mt-9">
+          <div className="flex items-center gap-3">
+            <span className="text-xs uppercase tracking-widest font-extrabold text-indigo-400 font-mono">
+              {menuItems.find((item) => item.viewId === activeView)?.label || "Workspace"}
+            </span>
+          </div>
+
+          {/* Active Video Context Selector */}
+          {activeProject && (
+            <div className="flex items-center gap-2 bg-white/[0.02] border border-white/[0.04] px-3 py-1 rounded-xl">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-zinc-500 font-mono">Scope:</span>
+              <select
+                value={activeIdea?.id || ""}
+                onChange={(e) => {
+                  const idea = ideas.find(i => i.id === e.target.value) || null;
+                  setActiveIdea(idea);
+                }}
+                className="bg-transparent text-[10px] font-extrabold text-indigo-300 outline-none hover:text-indigo-200 transition cursor-pointer"
+              >
+                <option value="" className="bg-[#0e0e13] text-zinc-500">
+                  Select a video context...
+                </option>
+                {ideas.map((idea) => (
+                  <option key={idea.id} value={idea.id} className="bg-[#0e0e13] text-zinc-200">
+                    🎬 {idea.title} [{idea.status}]
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </header>
+
         {/* Search Command Overlay */}
         <AnimatePresence>
           {searchOpen && (
@@ -293,8 +385,83 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </AnimatePresence>
 
+        {/* Create Project Modal */}
+        <AnimatePresence>
+          {isNewProjectModalOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsNewProjectModalOpen(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4 titlebar-no-drag"
+            >
+              <motion.div 
+                initial={{ scale: 0.95, y: 15 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 15 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-md bg-[#0e0e13]/90 border border-white/[0.06] backdrop-blur-2xl rounded-2xl p-6 space-y-4 shadow-2xl"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.04]">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-1.5 font-sans">
+                    <FolderOpen className="h-4.5 w-4.5 text-indigo-400" />
+                    <span>Create Workspace Project</span>
+                  </h3>
+                  <button 
+                    onClick={() => setIsNewProjectModalOpen(false)}
+                    className="text-zinc-500 hover:text-zinc-200 text-xs font-bold"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateProjectSubmit} className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-zinc-500 font-sans">Project Channel Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Design vlog channel"
+                      value={newProjectName}
+                      onChange={e => setNewProjectName(e.target.value)}
+                      className="w-full bg-[#050508]/80 border border-white/[0.05] rounded-xl px-3.5 py-2 text-xs text-zinc-200 outline-none focus:border-indigo-500/20 font-sans"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-zinc-500 font-sans">Overview Description</label>
+                    <textarea
+                      placeholder="Describe content target or channel category..."
+                      value={newProjectDesc}
+                      onChange={e => setNewProjectDesc(e.target.value)}
+                      className="w-full bg-[#050508]/60 border border-white/[0.04] rounded-xl p-3 text-xs outline-none text-zinc-300 h-20 resize-none font-sans"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsNewProjectModalOpen(false)}
+                      className="border border-white/5 text-zinc-400 px-4 py-2 rounded-xl text-xs font-semibold hover:bg-white/[0.03] transition font-sans"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-[0_4px_12px_rgba(99,102,241,0.2)] transition font-sans"
+                    >
+                      Create Project
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* View container */}
-        <div className="flex-1 overflow-y-auto px-8 py-6 mt-4">
+        <div className="flex-1 overflow-y-auto px-8 py-6">
           {children}
         </div>
       </main>

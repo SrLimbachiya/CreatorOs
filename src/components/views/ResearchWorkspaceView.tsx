@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   SearchCode, 
   Plus, 
@@ -9,9 +9,11 @@ import {
   Sparkles, 
   NotebookPen, 
   ExternalLink,
-  BookOpen
+  BookOpen,
+  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStore } from "../../hooks/useStore";
 import { ipc } from "../../lib/ipc";
 
 interface WebResource {
@@ -24,24 +26,12 @@ interface WebResource {
 }
 
 export default function ResearchWorkspaceView() {
-  const [resources, setResources] = useState<WebResource[]>([
-    {
-      id: "1",
-      title: "Google UI guidelines for desktop layouts",
-      url: "https://web.dev/css-layout",
-      content: "Ensure standard grid containers declare size container queries before child calculations. Leverage flexboxes and keep margins fluid to lock visual ratios on wide and ultra-wide monitor screens.",
-      type: "link",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      title: "Why video intros drop retention rates",
-      url: null,
-      content: "Intros that drag on for more than 5 seconds without showing the direct payoff of the video cause a massive dropoff. Keep hooks tight: show problem, state value, offer resolution direction, then roll logo in 3 seconds.",
-      type: "text",
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    }
-  ]);
+  const { activeIdea, updateIdea, ideas, setActiveIdea } = useStore();
+
+  // Parse resources from the active idea's referencesText column
+  const resources: WebResource[] = activeIdea?.referencesText 
+    ? JSON.parse(activeIdea.referencesText) 
+    : [];
 
   // Form input states
   const [title, setTitle] = useState("");
@@ -51,12 +41,23 @@ export default function ResearchWorkspaceView() {
   const [showAddForm, setShowAddForm] = useState(false);
 
   // AI states
-  const [selectedResource, setSelectedResource] = useState<WebResource | null>(resources[0]);
+  const [selectedResource, setSelectedResource] = useState<WebResource | null>(null);
   const [aiSummary, setAiSummary] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
 
-  const handleAddResource = (e: React.FormEvent) => {
+  // Reset states on activeIdea context change
+  useEffect(() => {
+    if (resources.length > 0) {
+      setSelectedResource(resources[0]);
+    } else {
+      setSelectedResource(null);
+    }
+    setAiSummary("");
+  }, [activeIdea?.id]);
+
+  const handleAddResource = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeIdea) return;
     if (!title.trim() || !content.trim()) return;
 
     const newRes: WebResource = {
@@ -68,7 +69,9 @@ export default function ResearchWorkspaceView() {
       createdAt: new Date().toISOString()
     };
 
-    setResources(prev => [newRes, ...prev]);
+    const updatedResources = [newRes, ...resources];
+    await updateIdea(activeIdea.id, { referencesText: JSON.stringify(updatedResources) });
+
     setSelectedResource(newRes);
     setTitle("");
     setUrl("");
@@ -76,11 +79,15 @@ export default function ResearchWorkspaceView() {
     setShowAddForm(false);
   };
 
-  const handleDeleteResource = (id: string, e: React.MouseEvent) => {
+  const handleDeleteResource = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setResources(prev => prev.filter(r => r.id !== id));
+    if (!activeIdea) return;
+
+    const updatedResources = resources.filter(r => r.id !== id);
+    await updateIdea(activeIdea.id, { referencesText: JSON.stringify(updatedResources) });
+
     if (selectedResource?.id === id) {
-      setSelectedResource(null);
+      setSelectedResource(updatedResources[0] || null);
       setAiSummary("");
     }
   };
@@ -100,16 +107,55 @@ export default function ResearchWorkspaceView() {
     }
   };
 
+  // Render selection prompt if no active video scope is select
+  if (!activeIdea) {
+    return (
+      <div className="h-[calc(100vh-150px)] flex flex-col items-center justify-center text-center p-8 select-none">
+        <div className="p-4 rounded-full bg-white/[0.02] border border-white/[0.04] text-zinc-500 mb-4 animate-pulse">
+          <BookOpen className="h-10 w-10 text-indigo-400" />
+        </div>
+        <h2 className="text-sm font-bold text-zinc-300 uppercase tracking-widest">No Active Video Scope</h2>
+        <p className="text-xs text-zinc-500 max-w-sm mt-2 leading-relaxed">
+          Research references and bookmarks are tied contextually to individual videos. Select a video from the active project list below to load its repository:
+        </p>
+
+        <div className="mt-6 w-full max-w-md space-y-2">
+          {ideas.length === 0 ? (
+            <p className="text-[10px] text-zinc-600 font-mono">Create an idea in the Idea Vault to start researching.</p>
+          ) : (
+            ideas.slice(0, 4).map((idea) => (
+              <button
+                key={idea.id}
+                onClick={() => setActiveIdea(idea)}
+                className="w-full flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/[0.04] hover:border-indigo-500/30 rounded-xl text-left text-xs font-semibold text-zinc-300 hover:text-white transition group"
+              >
+                <span className="truncate pr-2">🎬 {idea.title}</span>
+                <span className="text-[9px] uppercase font-mono text-indigo-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+                  Select Scope <ArrowRight className="h-3 w-3" />
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between select-none">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <SearchCode className="h-5 w-5 text-indigo-400" />
-            <span>Research Workspace</span>
-          </h1>
-          <p className="text-xs text-zinc-400">Collect bookmarks, text snippets, and link notes. Leverage AI to summarize structures and extract insights.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <SearchCode className="h-5 w-5 text-indigo-400" />
+              <span>Research Workspace</span>
+            </h1>
+            <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+              Scope: {activeIdea.title}
+            </span>
+          </div>
+          <p className="text-xs text-zinc-400 mt-1">Collect bookmarks, text snippets, and link notes. Leverage AI to summarize structures and extract insights.</p>
         </div>
 
         <button
@@ -127,7 +173,7 @@ export default function ResearchWorkspaceView() {
           animate={{ opacity: 1, y: 0 }}
           className="liquid-card rounded-2xl p-5 border border-white/[0.04] max-w-2xl space-y-4"
         >
-          <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest">Log Reference Source</h3>
+          <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest font-mono">Log Reference Source</h3>
           <form onSubmit={handleAddResource} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -220,103 +266,102 @@ export default function ResearchWorkspaceView() {
                     : "bg-white/[0.01] border-white/[0.03] hover:bg-white/[0.03] hover:border-white/[0.05]"
                 }`}
               >
-                <div className="flex items-start justify-between gap-1">
-                  <div className="flex items-center gap-1.5">
-                    {resource.type === "link" ? (
-                      <Link2 className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
-                    ) : (
-                      <NotebookPen className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                    )}
-                    <span className="text-xs font-bold text-zinc-200 line-clamp-1">
-                      {resource.title}
-                    </span>
-                  </div>
-                  <button
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[10px] font-bold text-zinc-200 line-clamp-1 group-hover:text-white transition">
+                    {resource.title}
+                  </span>
+                  <button 
                     onClick={(e) => handleDeleteResource(resource.id, e)}
-                    className="text-zinc-600 hover:text-rose-400 p-0.5 transition opacity-0 group-hover:opacity-100"
+                    className="opacity-0 group-hover:opacity-100 transition text-zinc-500 hover:text-rose-400"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
-
+                
                 <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">
                   {resource.content}
                 </p>
 
-                <span className="text-[8px] text-zinc-600 font-semibold font-mono self-end">
-                  {new Date(resource.createdAt).toLocaleDateString()}
-                </span>
+                <div className="flex items-center justify-between text-[8px] font-mono text-zinc-600 pt-1 font-bold">
+                  <span className="uppercase text-indigo-400/80">{resource.type}</span>
+                  <span>{new Date(resource.createdAt).toLocaleDateString()}</span>
+                </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Right: Selected Resource Content & AI Summary split pane */}
-        <div className="md:col-span-2 flex flex-col md:flex-row gap-4 h-full overflow-hidden">
+        {/* Right 2/3: Resource Detail Inspector + AI Summarization */}
+        <div className="md:col-span-2 flex flex-col gap-6 h-full overflow-y-auto">
           {selectedResource ? (
-            <>
-              {/* Reference Viewer */}
-              <div className="flex-1 bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-5 flex flex-col justify-between overflow-y-auto space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between pb-3 border-b border-white/[0.04]">
-                    <div>
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Source Material</h3>
-                      <h2 className="text-sm font-bold text-white mt-1 leading-tight">{selectedResource.title}</h2>
-                    </div>
-                    {selectedResource.url && (
-                      <a
-                        href={selectedResource.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-indigo-400 hover:text-indigo-300 p-1.5 rounded-lg bg-white/[0.02] border border-white/[0.05] transition"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start">
+              {/* Reference description */}
+              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4 flex flex-col h-full overflow-hidden">
+                <div className="flex items-center justify-between pb-3 border-b border-white/[0.04] shrink-0">
+                  <div className="flex items-center gap-2">
+                    {selectedResource.type === "link" ? (
+                      <Link2 className="h-4.5 w-4.5 text-emerald-400" />
+                    ) : (
+                      <NotebookPen className="h-4.5 w-4.5 text-indigo-400" />
                     )}
+                    <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest">{selectedResource.title}</h3>
                   </div>
+                  {selectedResource.url && (
+                    <a
+                      href={selectedResource.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-zinc-500 hover:text-zinc-300 text-[10px] font-bold font-mono flex items-center gap-1"
+                    >
+                      Visit <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
 
-                  <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
-                    {selectedResource.content}
-                  </p>
+                <div className="flex-1 overflow-y-auto bg-black/40 border border-white/[0.03] rounded-xl p-4 text-xs text-zinc-300 leading-relaxed font-mono whitespace-pre-wrap select-text">
+                  {selectedResource.content}
                 </div>
 
                 <button
                   onClick={() => handleSummarize(selectedResource)}
                   disabled={aiLoading}
-                  className="flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/40 text-white w-full py-2.5 rounded-xl text-xs font-semibold shadow-[0_4px_12px_rgba(99,102,241,0.25)] transition duration-300 shrink-0"
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/40 text-white rounded-xl py-2.5 text-xs font-bold shadow-[0_4px_12px_rgba(99,102,241,0.25)] transition duration-300 shrink-0"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  <span>{aiLoading ? "AI analyzing source..." : "Generate AI Insights"}</span>
+                  {aiLoading ? "Consulting AI..." : "Summarize Insights with Local AI"}
                 </button>
               </div>
 
-              {/* AI summary pane */}
-              <div className="flex-1 border border-white/[0.03] bg-zinc-950/20 backdrop-blur-sm rounded-2xl p-5 overflow-y-auto flex flex-col gap-3">
-                <div className="flex items-center gap-1.5 pb-3 border-b border-white/[0.04] shrink-0">
-                  <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
-                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest font-sans">AI Workspace Insights</span>
+              {/* AI summaries */}
+              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 h-full flex flex-col justify-between overflow-hidden">
+                <div className="flex items-center gap-2 pb-3 border-b border-white/[0.04] shrink-0">
+                  <Sparkles className="h-4.5 w-4.5 text-indigo-400 animate-pulse" />
+                  <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-widest font-sans">Research AI Summary</h3>
                 </div>
 
-                {aiSummary ? (
-                  <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto py-4 select-text">
+                  {aiLoading ? (
+                    <div className="h-full flex items-center justify-center text-zinc-500 text-xs font-mono">
+                      Thinking... Parsing reference nodes...
+                    </div>
+                  ) : aiSummary ? (
                     <p className="text-xs text-zinc-300 leading-relaxed font-mono whitespace-pre-wrap">
                       {aiSummary}
                     </p>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-zinc-500 gap-2 border border-dashed border-white/[0.02] rounded-xl">
-                    <BookOpen className="h-8 w-8 text-zinc-700" />
-                    <span className="text-xs leading-normal">
-                      Click the "Generate AI Insights" button to extract key summaries, angles, and video hook structures from this source.
-                    </span>
-                  </div>
-                )}
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-600 gap-2 border border-dashed border-white/[0.02] rounded-xl">
+                      <Sparkles className="h-8 w-8 text-zinc-800" />
+                      <p className="text-[10px] leading-normal font-sans">
+                        Press the button on the left panel to summarize key insights and hooks automatically.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </>
+            </div>
           ) : (
-            <div className="col-span-2 flex-1 bg-zinc-950/10 border border-white/[0.03] rounded-2xl flex flex-col items-center justify-center text-center p-8 text-zinc-500">
-              <SearchCode className="h-10 w-10 text-zinc-700 mb-2" />
-              <p className="text-xs">Select a research resource from the repository to read content and prompt AI summaries.</p>
+            <div className="liquid-card rounded-2xl border border-white/[0.03] p-12 text-center text-xs text-zinc-500 flex flex-col items-center justify-center gap-2 h-full">
+              <NotebookPen className="h-8 w-8 text-zinc-700 animate-bounce" />
+              <span>Select a logged source from the repository list to audit details.</span>
             </div>
           )}
         </div>
