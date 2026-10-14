@@ -147,15 +147,15 @@ export default function ResearchWorkspaceView() {
       <div className="flex items-center justify-between select-none">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <SearchCode className="h-5 w-5 text-indigo-400" />
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <SearchCode className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
               <span>Research Workspace</span>
             </h1>
-            <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-[9px] uppercase font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
               Scope: {activeIdea.title}
             </span>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">Collect bookmarks, text snippets, and link notes. Leverage AI to summarize structures and extract insights.</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Collect bookmarks, text snippets, and link notes. Leverage AI to summarize structures and extract insights.</p>
         </div>
 
         <button
@@ -246,10 +246,10 @@ export default function ResearchWorkspaceView() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-150px)] select-none">
         {/* Left: logged resources */}
-        <div className="md:col-span-1 border border-white/[0.03] bg-zinc-950/20 backdrop-blur-sm rounded-2xl p-4 overflow-y-auto space-y-3">
+        <div className="md:col-span-1 border border-[var(--glass-border)] bg-white/60 dark:bg-zinc-950/20 backdrop-blur-sm rounded-2xl p-4 overflow-y-auto space-y-3">
           <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Research Repository</h3>
           {resources.length === 0 ? (
-            <div className="text-center text-xs text-zinc-600 p-8 border border-dashed border-white/[0.02] rounded-xl">
+            <div className="text-center text-xs text-zinc-500 p-8 border border-dashed border-[var(--glass-border)] rounded-xl">
               No references logged. Press Add above.
             </div>
           ) : (
@@ -260,25 +260,25 @@ export default function ResearchWorkspaceView() {
                   setSelectedResource(resource);
                   setAiSummary("");
                 }}
-                className={`p-3.5 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col gap-2 relative group ${
+                className={`p-3.5 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2 relative group ${
                   selectedResource?.id === resource.id 
-                    ? "bg-indigo-500/10 border-indigo-500/30" 
-                    : "bg-white/[0.01] border-white/[0.03] hover:bg-white/[0.03] hover:border-white/[0.05]"
+                    ? "bg-indigo-500/12 border-indigo-500/40 shadow-sm" 
+                    : "bg-black/[0.02] dark:bg-white/[0.01] border-[var(--glass-border)] hover:bg-black/[0.04] dark:hover:bg-white/[0.03]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-[10px] font-bold text-zinc-200 line-clamp-1 group-hover:text-white transition">
+                  <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-200 line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-white transition">
                     {resource.title}
                   </span>
                   <button 
                     onClick={(e) => handleDeleteResource(resource.id, e)}
-                    className="opacity-0 group-hover:opacity-100 transition text-zinc-500 hover:text-rose-400"
+                    className="opacity-0 group-hover:opacity-100 transition text-zinc-400 hover:text-rose-500"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 
-                <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">
+                <p className="text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
                   {resource.content}
                 </p>
 
@@ -296,29 +296,29 @@ export default function ResearchWorkspaceView() {
           {selectedResource ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start">
               {/* Reference description */}
-              <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4 flex flex-col h-full overflow-hidden">
-                <div className="flex items-center justify-between pb-3 border-b border-white/[0.04] shrink-0">
+              <div className="liquid-card rounded-2xl border border-[var(--glass-border)] p-5 space-y-4 flex flex-col h-full overflow-hidden">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--glass-border)] shrink-0">
                   <div className="flex items-center gap-2">
                     {selectedResource.type === "link" ? (
-                      <Link2 className="h-4.5 w-4.5 text-emerald-400" />
+                      <Link2 className="h-4.5 w-4.5 text-emerald-500 dark:text-emerald-400" />
                     ) : (
-                      <NotebookPen className="h-4.5 w-4.5 text-indigo-400" />
+                      <NotebookPen className="h-4.5 w-4.5 text-indigo-500 dark:text-indigo-400" />
                     )}
-                    <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-widest">{selectedResource.title}</h3>
+                    <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 uppercase tracking-widest">{selectedResource.title}</h3>
                   </div>
                   {selectedResource.url && (
                     <a
                       href={selectedResource.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-zinc-500 hover:text-zinc-300 text-[10px] font-bold font-mono flex items-center gap-1"
+                      className="text-indigo-600 dark:text-zinc-400 hover:underline text-[10px] font-bold font-mono flex items-center gap-1"
                     >
                       Visit <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto bg-black/40 border border-white/[0.03] rounded-xl p-4 text-xs text-zinc-300 leading-relaxed font-mono whitespace-pre-wrap select-text">
+                <div className="flex-1 overflow-y-auto bg-white/70 dark:bg-black/40 border border-[var(--glass-border)] rounded-xl p-4 text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed font-mono whitespace-pre-wrap select-text">
                   {selectedResource.content}
                 </div>
 

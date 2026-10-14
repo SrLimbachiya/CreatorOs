@@ -33,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${outfit.variable} ${mono.variable} ${serif.variable} antialiased text-foreground bg-[#010102]`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.variable} ${outfit.variable} ${mono.variable} ${serif.variable} antialiased text-foreground selection:bg-indigo-500/25 selection:text-indigo-200 min-h-screen overflow-hidden`}>
         {children}
       </body>
     </html>

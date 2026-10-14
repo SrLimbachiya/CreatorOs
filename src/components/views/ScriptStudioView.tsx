@@ -193,25 +193,25 @@ export default function ScriptStudioView() {
       <div className="flex items-center justify-between select-none">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <PenTool className="h-5 w-5 text-indigo-400" />
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <PenTool className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
               <span>Script Writing Studio</span>
             </h1>
-            <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-[9px] uppercase font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
               Scope: {activeIdea.title}
             </span>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">Draft outlines, hooks, and body details. Leverage AI rewriting options, and autosave script progress.</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Draft outlines, hooks, and body details. Leverage AI rewriting options, and autosave script progress.</p>
         </div>
 
         <div className="flex items-center gap-2.5">
           {/* Status Indicator */}
-          <div className="text-[9px] uppercase tracking-wider font-mono font-bold text-zinc-500 bg-white/[0.01] border border-white/[0.04] px-3 py-1.5 rounded-xl">
+          <div className="text-[9px] uppercase tracking-wider font-mono font-bold text-zinc-500 bg-black/[0.03] dark:bg-white/[0.03] border border-[var(--glass-border)] px-3 py-1.5 rounded-xl">
             {isSaving ? "Autosaving..." : "All changes saved"}
           </div>
 
           {/* Duration estimated */}
-          <div className="flex items-center gap-1 text-[10px] bg-white/[0.02] border border-white/[0.04] px-3 py-1.5 rounded-xl text-zinc-400 font-medium">
+          <div className="flex items-center gap-1.5 text-[10px] bg-black/[0.03] dark:bg-white/[0.03] border border-[var(--glass-border)] px-3 py-1.5 rounded-xl text-zinc-600 dark:text-zinc-400 font-semibold">
             <Clock className="h-3.5 w-3.5 text-zinc-500" />
             <span>Est. Duration: {formatDuration(readingTime)}</span>
           </div>
@@ -220,13 +220,13 @@ export default function ScriptStudioView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-150px)] select-none">
         {/* Left: Text editor panel */}
-        <div className="lg:col-span-2 bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-5 flex flex-col h-full overflow-hidden space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/[0.04] shrink-0">
+        <div className="lg:col-span-2 liquid-card rounded-2xl border border-[var(--glass-border)] p-5 flex flex-col h-full overflow-hidden space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[var(--glass-border)] shrink-0">
             <input
               type="text"
               value={scriptTitle}
               onChange={e => setScriptTitle(e.target.value)}
-              className="bg-transparent border-0 outline-none text-sm font-bold text-white w-[80%] focus:border-b focus:border-white/10"
+              className="bg-transparent border-0 outline-none text-sm font-bold text-zinc-900 dark:text-white w-[80%] focus:border-b focus:border-indigo-500/30"
               placeholder="Script Title..."
             />
             <div className="text-[10px] text-zinc-500 font-bold font-mono">
@@ -238,15 +238,15 @@ export default function ScriptStudioView() {
             value={scriptContent}
             onChange={e => setScriptContent(e.target.value)}
             placeholder="Start drafting your YouTube script..."
-            className="flex-1 w-full bg-transparent outline-none border-0 text-xs text-zinc-200 leading-relaxed font-mono resize-none overflow-y-auto pr-2 select-text"
+            className="flex-1 w-full bg-transparent outline-none border-0 text-xs text-zinc-800 dark:text-zinc-200 leading-relaxed font-mono resize-none overflow-y-auto pr-2 select-text"
           />
         </div>
 
         {/* Right: AI helper pane */}
-        <div className="lg:col-span-1 border border-white/[0.03] bg-zinc-950/20 backdrop-blur-sm rounded-2xl p-5 overflow-y-auto flex flex-col gap-4">
-          <div className="flex items-center gap-1.5 pb-3 border-b border-white/[0.04] shrink-0">
-            <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
-            <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest font-sans">Script Editor AI</span>
+        <div className="lg:col-span-1 border border-[var(--glass-border)] liquid-card rounded-2xl p-5 overflow-y-auto flex flex-col gap-4">
+          <div className="flex items-center gap-1.5 pb-3 border-b border-[var(--glass-border)] shrink-0">
+            <Sparkles className="h-4 w-4 text-indigo-500 dark:text-indigo-400 animate-pulse" />
+            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest font-sans">Script Editor AI</span>
           </div>
 
           {/* AI options presets */}

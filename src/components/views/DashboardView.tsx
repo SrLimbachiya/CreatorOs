@@ -194,21 +194,21 @@ export default function DashboardView() {
     <div className="space-y-6 pb-10 w-full h-full">
       
       {/* Header Banner - Liquid Glass */}
-      <div className="liquid-card rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-white/[0.04]">
+      <div className="liquid-card rounded-2xl p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-[var(--glass-border)]">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white">YouTube Creator Command Center</h1>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white">YouTube Creator Command Center</h1>
             {isYoutubeConnected ? (
-              <span className="flex items-center gap-1 text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold uppercase tracking-wider animate-pulse">
+              <span className="flex items-center gap-1 text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold uppercase tracking-wider animate-pulse">
                 <Youtube className="h-2.5 w-2.5" /> Live Sync Active
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-[9px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold uppercase tracking-wider">
+              <span className="flex items-center gap-1 text-[9px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20 font-bold uppercase tracking-wider">
                 <AlertCircle className="h-2.5 w-2.5" /> Sandbox Mode
               </span>
             )}
           </div>
-          <p className="text-xs text-zinc-400 max-w-xl">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xl">
             {isYoutubeConnected 
               ? "Live API sync active. Pulling data metrics from your configured YouTube Studio dashboard." 
               : "To link your live channel stats and API credentials, head to the Settings page."}
@@ -218,7 +218,7 @@ export default function DashboardView() {
           {!isYoutubeConnected && (
             <button 
               onClick={() => setActiveView("settings")}
-              className="border border-white/5 bg-white/[0.03] hover:bg-white/[0.08] text-zinc-300 px-4 py-2 rounded-xl text-xs font-semibold transition"
+              className="border border-[var(--glass-border)] bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-zinc-700 dark:text-zinc-300 px-4 py-2 rounded-xl text-xs font-semibold transition"
             >
               Sync Channel
             </button>
@@ -274,29 +274,29 @@ export default function DashboardView() {
         <div className="xl:col-span-2 space-y-6">
           
           {/* Visual Chart Panel */}
-          <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 flex flex-col justify-between overflow-hidden">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.03]">
+          <div className="liquid-card rounded-2xl border border-[var(--glass-border)] p-5 flex flex-col justify-between overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--glass-border)]">
               <div className="flex items-center gap-2">
-                <Activity className="h-4.5 w-4.5 text-indigo-400" />
-                <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Analytics Velocity Chart</h3>
+                <Activity className="h-4.5 w-4.5 text-indigo-500 dark:text-indigo-400" />
+                <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 uppercase tracking-wider">Analytics Velocity Chart</h3>
               </div>
               
-              <div className="flex gap-1.5 text-[9px] font-bold text-zinc-500 bg-white/[0.02] border border-white/[0.04] p-0.5 rounded-lg">
+              <div className="flex gap-1.5 text-[9px] font-bold text-zinc-500 bg-black/[0.03] dark:bg-white/[0.02] border border-[var(--glass-border)] p-0.5 rounded-lg">
                 <button 
                   onClick={() => setActiveChartMetric("views")}
-                  className={`px-2.5 py-1 rounded transition ${activeChartMetric === "views" ? "bg-indigo-600 text-white" : "hover:text-zinc-300"}`}
+                  className={`px-2.5 py-1 rounded transition ${activeChartMetric === "views" ? "bg-indigo-600 text-white font-bold" : "hover:text-zinc-800 dark:hover:text-zinc-300"}`}
                 >
                   Views Trend
                 </button>
                 <button 
                   onClick={() => setActiveChartMetric("ctr")}
-                  className={`px-2.5 py-1 rounded transition ${activeChartMetric === "ctr" ? "bg-indigo-600 text-white" : "hover:text-zinc-300"}`}
+                  className={`px-2.5 py-1 rounded transition ${activeChartMetric === "ctr" ? "bg-indigo-600 text-white font-bold" : "hover:text-zinc-800 dark:hover:text-zinc-300"}`}
                 >
                   CTR Flow
                 </button>
                 <button 
                   onClick={() => setActiveChartMetric("retention")}
-                  className={`px-2.5 py-1 rounded transition ${activeChartMetric === "retention" ? "bg-indigo-600 text-white" : "hover:text-zinc-300"}`}
+                  className={`px-2.5 py-1 rounded transition ${activeChartMetric === "retention" ? "bg-indigo-600 text-white font-bold" : "hover:text-zinc-800 dark:hover:text-zinc-300"}`}
                 >
                   Retention Map
                 </button>
@@ -304,9 +304,9 @@ export default function DashboardView() {
             </div>
 
             <div className="flex-1 relative w-full h-[220px] mt-4 select-none">
-              <div className="absolute inset-x-0 top-1/4 border-b border-dashed border-white/[0.015]" />
-              <div className="absolute inset-x-0 top-2/4 border-b border-dashed border-white/[0.015]" />
-              <div className="absolute inset-x-0 top-3/4 border-b border-dashed border-white/[0.015]" />
+              <div className="absolute inset-x-0 top-1/4 border-b border-dashed border-[var(--glass-border)]" />
+              <div className="absolute inset-x-0 top-2/4 border-b border-dashed border-[var(--glass-border)]" />
+              <div className="absolute inset-x-0 top-3/4 border-b border-dashed border-[var(--glass-border)]" />
 
               <svg viewBox="0 0 600 200" className="w-full h-full overflow-visible">
                 <defs>
@@ -327,7 +327,7 @@ export default function DashboardView() {
                       cx={svgX}
                       cy={svgY}
                       r="4.5"
-                      className="fill-[#050508] stroke-[var(--primary-color)] stroke-2 cursor-pointer hover:r-6 transition"
+                      className="fill-white dark:fill-[#080811] stroke-[var(--primary-color)] stroke-2 cursor-pointer hover:r-6 transition"
                       onMouseEnter={() => setHoveredPoint({ day: i + 1, val: pt.val })}
                       onMouseLeave={() => setHoveredPoint(null)}
                     />
@@ -336,8 +336,8 @@ export default function DashboardView() {
               </svg>
 
               {hoveredPoint && (
-                <div className="absolute bottom-2 left-4 bg-black/80 border border-white/[0.06] backdrop-blur-md rounded-lg p-2 font-mono text-[9px] text-zinc-300">
-                  <span className="font-bold text-white">Day {hoveredPoint.day}:</span> {hoveredPoint.val}
+                <div className="absolute bottom-2 left-4 bg-white/95 dark:bg-black/90 border border-[var(--glass-border)] backdrop-blur-md rounded-lg p-2 font-mono text-[9px] text-zinc-800 dark:text-zinc-200 shadow-xl">
+                  <span className="font-bold text-zinc-900 dark:text-white">Day {hoveredPoint.day}:</span> {hoveredPoint.val}
                 </div>
               )}
             </div>
@@ -462,14 +462,14 @@ export default function DashboardView() {
                   <div 
                     key={stat.title}
                     onClick={() => setActiveChartMetric(stat.metricId)}
-                    className="liquid-card rounded-2xl p-4 border border-white/[0.03] flex items-center justify-between cursor-pointer hover:border-[var(--primary-color)]/30 transition duration-300"
+                    className="liquid-card rounded-2xl p-4 border border-[var(--glass-border)] flex items-center justify-between cursor-pointer hover:border-[var(--primary-color)]/40 transition duration-200"
                   >
                     <div className="space-y-1">
                       <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{stat.title}</span>
-                      <p className="text-lg font-bold text-white tracking-tight">{stat.value}</p>
-                      <span className="text-[8px] text-emerald-400 block font-semibold">{stat.change}</span>
+                      <p className="text-lg font-extrabold text-zinc-900 dark:text-white tracking-tight">{stat.value}</p>
+                      <span className="text-[8px] text-emerald-600 dark:text-emerald-400 block font-semibold">{stat.change}</span>
                     </div>
-                    <div className="p-2 rounded-xl bg-white/[0.02] border border-white/[0.04] text-zinc-400 shrink-0">
+                    <div className="p-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-[var(--glass-border)] text-zinc-600 dark:text-zinc-400 shrink-0">
                       <Icon className="h-4 w-4" />
                     </div>
                   </div>

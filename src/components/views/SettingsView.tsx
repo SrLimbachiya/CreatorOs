@@ -20,7 +20,9 @@ import {
   RefreshCw,
   Type,
   Layout,
-  Check
+  Check,
+  Sun,
+  Moon
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ipc } from "../../lib/ipc";
@@ -174,7 +176,7 @@ export default function SettingsView() {
 
   const handleApplyPreset = (preset: PresetPalette) => {
     setPrimaryColor(preset.primary);
-    setSecondaryColor(preset.secondary);
+    setSecondaryColor(settings?.theme === "light" ? "#f8fafc" : preset.secondary);
   };
 
   const handleTestConnection = async () => {
@@ -577,6 +579,48 @@ export default function SettingsView() {
                       <Palette className="h-4 w-4 text-indigo-400" />
                       <span>Appearance & Typography Model</span>
                     </h3>
+                  </div>
+
+                  {/* Theme Mode Selector */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] uppercase font-bold text-zinc-500">Theme Mode</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => updateSettings({ theme: "dark" })}
+                        className={`p-3 rounded-xl border flex items-center gap-3 transition text-left cursor-pointer ${
+                          settings?.theme !== "light"
+                            ? "bg-indigo-600/15 border-indigo-500/50 text-indigo-300 shadow-sm"
+                            : "bg-white/80 dark:bg-black/30 border-[var(--glass-border)] text-zinc-500 hover:border-indigo-500/30"
+                        }`}
+                      >
+                        <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+                          <Moon className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-zinc-900 dark:text-zinc-200">Dark Mode</div>
+                          <div className="text-[10px] text-zinc-500 dark:text-zinc-400">Cosmic Obsidian & Aurora</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => updateSettings({ theme: "light" })}
+                        className={`p-3 rounded-xl border flex items-center gap-3 transition text-left cursor-pointer ${
+                          settings?.theme === "light"
+                            ? "bg-indigo-600/15 border-indigo-500/50 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                            : "bg-white/80 dark:bg-black/30 border-[var(--glass-border)] text-zinc-500 hover:border-indigo-500/30"
+                        }`}
+                      >
+                        <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                          <Sun className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-zinc-900 dark:text-zinc-200">Light Mode</div>
+                          <div className="text-[10px] text-zinc-500">Crisp Slate & Frosted Glass</div>
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
                   {/* PREMIUM COLOR PRESETS */}

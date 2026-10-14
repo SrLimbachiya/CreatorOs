@@ -99,11 +99,11 @@ export default function CompetitorAnalysisView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-indigo-400" />
+          <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
             <span>Competitor Analysis</span>
           </h1>
-          <p className="text-xs text-zinc-400">Track and study channels in your niche. Benchmark strengths, editing pacing, and thumbnail branding styles.</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">Track and study channels in your niche. Benchmark strengths, editing pacing, and thumbnail branding styles.</p>
         </div>
 
         <button
@@ -233,7 +233,7 @@ export default function CompetitorAnalysisView() {
       {/* Grid of Competitors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none">
         {competitors.length === 0 ? (
-          <div className="liquid-card col-span-2 rounded-2xl p-8 border border-white/[0.03] text-center text-xs text-zinc-500">
+          <div className="liquid-card col-span-2 rounded-2xl p-8 border border-[var(--glass-border)] text-center text-xs text-zinc-500">
             No competitor channels registered. Press Add Channel above.
           </div>
         ) : (
@@ -241,20 +241,20 @@ export default function CompetitorAnalysisView() {
             <motion.div
               layout
               key={comp.id}
-              className="liquid-card rounded-2xl p-5 border border-white/[0.03] flex flex-col justify-between space-y-4"
+              className="liquid-card rounded-2xl p-5 border border-[var(--glass-border)] flex flex-col justify-between space-y-4 shadow-sm"
             >
-              <div className="flex items-start justify-between pb-3 border-b border-white/[0.04]">
+              <div className="flex items-start justify-between pb-3 border-b border-[var(--glass-border)]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-white">{comp.channelName}</h3>
-                    <span className="text-[9px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-semibold font-mono">
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-white">{comp.channelName}</h3>
+                    <span className="text-[9px] bg-indigo-500/12 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/20 font-bold font-mono">
                       {comp.subscribers} Subs
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleDeleteCompetitor(comp.id)}
-                  className="text-zinc-600 hover:text-rose-400 p-1 transition"
+                  className="text-zinc-400 hover:text-rose-500 p-1 transition"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -263,30 +263,30 @@ export default function CompetitorAnalysisView() {
               <div className="space-y-3.5 text-xs">
                 <div className="space-y-1">
                   <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                    <Award className="h-3 w-3 text-emerald-400" /> Strengths & Positioning
+                    <Award className="h-3 w-3 text-emerald-500 dark:text-emerald-400" /> Strengths & Positioning
                   </span>
-                  <p className="text-zinc-300 leading-relaxed text-[11px]">{comp.strengths}</p>
+                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-[11px]">{comp.strengths}</p>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                    <Video className="h-3 w-3 text-indigo-400" /> Editing & Branding Pacing
+                    <Video className="h-3 w-3 text-indigo-500 dark:text-indigo-400" /> Editing & Branding Pacing
                   </span>
-                  <p className="text-zinc-300 leading-relaxed text-[11px]">{comp.editingStyle}</p>
+                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-[11px]">{comp.editingStyle}</p>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                    <Smile className="h-3 w-3 text-amber-400" /> Hook Structure Style
+                    <Smile className="h-3 w-3 text-amber-500 dark:text-amber-400" /> Hook Structure Style
                   </span>
-                  <p className="text-zinc-300 leading-relaxed text-[11px]">{comp.hookStyle}</p>
+                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed text-[11px]">{comp.hookStyle}</p>
                 </div>
 
                 <div className="space-y-1">
                   <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1">
-                    <Sliders className="h-3 w-3 text-zinc-400" /> Takeaway Notes
+                    <Sliders className="h-3 w-3 text-zinc-500" /> Takeaway Notes
                   </span>
-                  <p className="text-zinc-400 leading-relaxed text-[11px] font-mono italic">{comp.notes}</p>
+                  <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-[11px] font-mono italic">{comp.notes}</p>
                 </div>
               </div>
             </motion.div>

@@ -170,13 +170,13 @@ export default function IdeaVaultView() {
             return (
               <div
                 key={status}
-                className="w-72 shrink-0 flex flex-col h-full bg-zinc-950/20 border border-white/[0.03] rounded-2xl p-3 overflow-hidden backdrop-blur-sm"
+                className="w-72 shrink-0 flex flex-col h-full bg-white/60 dark:bg-zinc-950/20 border border-[var(--glass-border)] rounded-2xl p-3 overflow-hidden backdrop-blur-sm"
               >
                 {/* Column Header */}
                 <div className="flex items-center justify-between mb-3 px-1 shrink-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-zinc-200 uppercase tracking-wider">{status}</span>
-                    <span className="text-[10px] font-mono text-zinc-500 bg-white/[0.02] border border-white/[0.04] px-1.5 py-0.5 rounded font-bold">
+                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-200 uppercase tracking-wider">{status}</span>
+                    <span className="text-[10px] font-mono text-zinc-500 bg-black/[0.04] dark:bg-white/[0.03] border border-[var(--glass-border)] px-1.5 py-0.5 rounded font-bold">
                       {statusIdeas.length}
                     </span>
                   </div>
@@ -191,8 +191,8 @@ export default function IdeaVaultView() {
                         setSelectedIdea(idea);
                         setInspectorTab("concept");
                       }}
-                      className={`liquid-card rounded-2xl p-4.5 border border-white/[0.03] hover:border-white/[0.08] flex flex-col gap-3.5 cursor-pointer relative group transition-all duration-300 ${
-                        activeIdea?.id === idea.id ? "border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.15)] bg-indigo-500/[0.02]" : ""
+                      className={`liquid-card rounded-2xl p-4.5 border border-[var(--glass-border)] hover:border-indigo-500/40 flex flex-col gap-3.5 cursor-pointer relative group transition-all duration-200 ${
+                        activeIdea?.id === idea.id ? "border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)] bg-indigo-500/[0.04]" : ""
                       }`}
                     >
                       {activeIdea?.id === idea.id && (
@@ -206,23 +206,23 @@ export default function IdeaVaultView() {
                         <div className="flex items-center justify-between text-[8px] font-mono text-zinc-500 font-bold uppercase tracking-wider">
                           <span>{idea.category || "General"}</span>
                           <span className={
-                            idea.priority === "High" ? "text-rose-400" : idea.priority === "Medium" ? "text-amber-400" : "text-emerald-400"
+                            idea.priority === "High" ? "text-rose-500 dark:text-rose-400" : idea.priority === "Medium" ? "text-amber-500 dark:text-amber-400" : "text-emerald-500 dark:text-emerald-400"
                           }>
                             {idea.priority} Priority
                           </span>
                         </div>
-                        <h4 className="text-xs font-bold text-zinc-200 leading-snug group-hover:text-white transition">
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-200 leading-snug group-hover:text-indigo-600 dark:group-hover:text-white transition">
                           {idea.title}
                         </h4>
                       </div>
 
                       {idea.description && (
-                        <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">
+                        <p className="text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
                           {idea.description}
                         </p>
                       )}
 
-                      <div className="flex items-center justify-between border-t border-white/[0.03] pt-2 mt-1">
+                      <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2 mt-1">
                         {/* Move state triggers */}
                         <div className="flex items-center gap-1">
                           <button
@@ -230,7 +230,7 @@ export default function IdeaVaultView() {
                               e.stopPropagation();
                               handleMoveStatus(idea, "prev");
                             }}
-                            className="p-1 rounded bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.06] text-zinc-400 transition"
+                            className="p-1 rounded bg-black/[0.03] dark:bg-white/[0.02] border border-[var(--glass-border)] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] text-zinc-600 dark:text-zinc-400 transition"
                           >
                             <ChevronLeft className="h-3 w-3" />
                           </button>
@@ -239,14 +239,14 @@ export default function IdeaVaultView() {
                               e.stopPropagation();
                               handleMoveStatus(idea, "next");
                             }}
-                            className="p-1 rounded bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.06] text-zinc-400 transition"
+                            className="p-1 rounded bg-black/[0.03] dark:bg-white/[0.02] border border-[var(--glass-border)] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] text-zinc-600 dark:text-zinc-400 transition"
                           >
                             <ChevronRight className="h-3 w-3" />
                           </button>
                         </div>
 
                         {/* Forecast views or actual performance badge */}
-                        <span className="text-[9px] font-mono text-zinc-500 font-bold bg-white/[0.01] border border-white/[0.03] px-2 py-0.5 rounded">
+                        <span className="text-[9px] font-mono text-zinc-500 font-bold bg-black/[0.02] dark:bg-white/[0.02] border border-[var(--glass-border)] px-2 py-0.5 rounded">
                           {idea.status === "Published" && idea.actualViews > 0 
                             ? `📈 ${(idea.actualViews/1000).toFixed(0)}K views`
                             : `🔮 ${idea.estimatedViews ? `${(idea.estimatedViews/1000).toFixed(0)}K` : "10K"} target`
@@ -257,7 +257,7 @@ export default function IdeaVaultView() {
                   ))}
 
                   {statusIdeas.length === 0 && (
-                    <div className="text-center py-8 border border-dashed border-white/[0.02] rounded-xl text-[10px] text-zinc-600 font-medium">
+                    <div className="text-center py-8 border border-dashed border-[var(--glass-border)] rounded-xl text-[10px] text-zinc-500 font-medium">
                       Drag cards here
                     </div>
                   )}

@@ -323,19 +323,19 @@ export default function MetadataStudioView() {
       <div className="flex items-center justify-between select-none">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <Clapperboard className="h-5 w-5 text-indigo-400" />
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+              <Clapperboard className="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
               <span>Metadata & Packaging Studio</span>
             </h1>
-            <span className="text-[9px] uppercase font-bold text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
+            <span className="text-[9px] uppercase font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-0.5 rounded-full">
               Scope: {activeIdea.title}
             </span>
           </div>
-          <p className="text-xs text-zinc-400 mt-1">Audit SEO keywords, simulate YouTube feed CTR previews, generate AI timestamps, and coordinate checklists.</p>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Audit SEO keywords, simulate YouTube feed CTR previews, generate AI timestamps, and coordinate checklists.</p>
         </div>
 
         {/* Sub-tabs Switcher */}
-        <div className="bg-white/[0.02] border border-white/[0.04] p-1 rounded-xl flex gap-1 text-[10px] font-semibold text-zinc-400 select-none">
+        <div className="bg-black/[0.03] dark:bg-white/[0.02] border border-[var(--glass-border)] p-1 rounded-xl flex gap-1 text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 select-none">
           <button
             onClick={() => setActiveSubTab("preview")}
             className={`px-3 py-1.5 rounded-lg transition-all ${activeSubTab === "preview" ? "bg-indigo-600 text-white" : "hover:text-zinc-200"}`}
@@ -504,13 +504,13 @@ export default function MetadataStudioView() {
               <div className="lg:col-span-2 space-y-6">
                 
                 {/* 1. Desktop Search Results Feed Mockup */}
-                <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-white/[0.03] pb-2">
+                <div className="liquid-card rounded-2xl border border-[var(--glass-border)] p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-[var(--glass-border)] pb-2">
                     <Tv className="h-4 w-4 text-zinc-500" />
                     <span>YouTube Desktop Search feed layout</span>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row gap-4 items-start bg-[#050508]/40 border border-white/[0.02] p-4 rounded-2xl">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start bg-white/80 dark:bg-[#050508]/40 border border-[var(--glass-border)] p-4 rounded-2xl shadow-sm">
                     
                     {/* Simulated Thumbnail */}
                     <div 
@@ -548,17 +548,17 @@ export default function MetadataStudioView() {
 
                     {/* Metadata text details */}
                     <div className="space-y-1.5">
-                      <h3 className="text-sm font-bold text-zinc-100 leading-snug line-clamp-2 max-w-md">
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2 max-w-md">
                         {videoTitle || "Untitled Concept"}
                       </h3>
-                      <div className="text-[10px] text-zinc-400 font-medium">
+                      <div className="text-[10px] text-zinc-600 dark:text-zinc-400 font-medium">
                         <span>{channelName}</span>
                         <span className="mx-1.5">•</span>
                         <span>{viewsCount}</span>
                         <span className="mx-1.5">•</span>
                         <span>{uploadTime}</span>
                       </div>
-                      <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed max-w-sm">
+                      <p className="text-[10px] text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed max-w-sm">
                         {activeIdea.description || "Simulating video explanation details logged from ideas vault."}
                       </p>
                     </div>
@@ -567,13 +567,13 @@ export default function MetadataStudioView() {
                 </div>
 
                 {/* 2. YouTube Suggested Sidebar Mockup */}
-                <div className="liquid-card rounded-2xl border border-white/[0.03] p-5 space-y-4">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-white/[0.03] pb-2">
+                <div className="liquid-card rounded-2xl border border-[var(--glass-border)] p-5 space-y-4">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-b border-[var(--glass-border)] pb-2">
                     <SidebarIcon className="h-4 w-4 text-zinc-500" />
                     <span>YouTube Sidebar suggested recommendation list</span>
                   </div>
 
-                  <div className="flex gap-3 items-start bg-[#050508]/40 border border-white/[0.02] p-3.5 rounded-2xl max-w-md">
+                  <div className="flex gap-3 items-start bg-white/80 dark:bg-[#050508]/40 border border-[var(--glass-border)] p-3.5 rounded-2xl max-w-md shadow-sm">
                     
                     {/* Simulated small thumbnail */}
                     <div 
